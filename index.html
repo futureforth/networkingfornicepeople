@@ -249,6 +249,18 @@
   .badge-divider{
     margin:18px 0; border:none; border-top:2px dashed var(--hairline-strong); opacity:0.35;
   }
+  .badge-event{
+    display:flex; align-items:center; gap:6px; width:100%; box-sizing:border-box;
+    font-size:12px; font-weight:700; color:var(--accent-ink);
+    background:rgba(247,148,29,0.16); border:2px solid var(--accent);
+    padding:7px 12px; border-radius:12px; margin-bottom:14px;
+    font-family:inherit; text-align:left; cursor:default;
+  }
+  .badge-event svg{width:15px; height:15px; flex-shrink:0;}
+  button.badge-event-empty{
+    background:var(--surface-2); border:2px dashed var(--hairline); color:var(--text-muted); cursor:pointer;
+  }
+  button.badge-event-empty:hover{border-color:var(--hairline-strong); color:var(--text);}
   .badge-tags-label{font-size:11px; color:var(--text-faint); margin-bottom:8px;}
   .badge-section + .badge-section{margin-top:16px;}
 
@@ -486,6 +498,7 @@
     var o = { i:p.id, n:p.name };
     if(p.headline) o.h = p.headline;
     if(p.goal) o.g = p.goal;
+    if(p.event) o.ev = p.event;
     if(p.profTags && p.profTags.length) o.p = p.profTags;
     if(p.persTags && p.persTags.length) o.s = p.persTags;
     if(includePhoto && p.photo) o.ph = p.photo;
@@ -505,7 +518,7 @@
       var o = JSON.parse(b64urlDecode(str));
       if(!o.i || !o.n) return null;
       return {
-        id:o.i, name:o.n, headline:o.h||"", goal:o.g||"", photo:o.ph||"",
+        id:o.i, name:o.n, headline:o.h||"", goal:o.g||"", event:o.ev||"", photo:o.ph||"",
         profTags:o.p||[], persTags:o.s||[],
         contact:{ email:(o.c&&o.c.e)||"", phone:(o.c&&o.c.t)||"", linkedin:(o.c&&o.c.l)||"", instagram:(o.c&&o.c.ig)||"", other:(o.c&&o.c.o)||"" }
       };
@@ -566,6 +579,7 @@
     pending: null,        // decoded profile awaiting confirmation
     quickCaptureExpanded: false, // true once a pending visitor chooses "make my badge now"
     justConnected: null,  // profile just added, for overlay
+    justCreated: false,   // true right after first-time badge creation, for the "badge saved" overlay
     settingsOpen: false,
     resetArmed: false,
     backupOpen: false,     // "get my backup link" panel expanded in settings
@@ -587,13 +601,13 @@
         profile:{ id:uid("smp"), name:"Priya Nakamura", headline:"Partnerships, Meridian Health",
           goal:"Selling a service", profTags:["Health tech","Partnerships"], persTags:["Trail running"],
           contact:{ email:"priya@example.com", phone:"", linkedin:"https://linkedin.com/in/example", other:"" } },
-        connectedAt: now - 7*3600000, notes:"", noteAddedAt:null, sample:true
+        connectedAt: now - 7*3600000, event:"Geek Breakfast", notes:"", noteAddedAt:null, sample:true
       },
       {
         profile:{ id:uid("smp"), name:"Marcus Webb", headline:"Founder, Loop Studio",
           goal:"Hiring", profTags:["Product design","Startups"], persTags:["Vinyl records"],
           contact:{ email:"", phone:"", linkedin:"", other:"marcuswebb.com" } },
-        connectedAt: now - 40*60000, notes:"", noteAddedAt:null, sample:true
+        connectedAt: now - 40*60000, event:"Geek Breakfast", notes:"", noteAddedAt:null, sample:true
       }
     ];
     saveConns(state.connections);
@@ -618,6 +632,7 @@
     }
 
     if(state.justConnected){ html += renderConnectedOverlay(); }
+    if(state.justCreated){ html += renderBadgeSavedOverlay(); }
     if(state.restorePending){ html += renderRestoreConfirm(); }
     if(state.settingsOpen){ html += renderSettingsSheet(); }
 
@@ -716,7 +731,7 @@
 
   /* ---------------- onboarding ---------------- */
   function renderOnboarding(isEdit){
-    var p = isEdit ? state.me : { name:"", headline:"", goal:"", photo:"", profTags:[], persTags:[], contact:{email:"",phone:"",linkedin:"",instagram:"",other:""} };
+    var p = isEdit ? state.me : { name:"", headline:"", goal:"", event:"", photo:"", profTags:[], persTags:[], contact:{email:"",phone:"",linkedin:"",instagram:"",other:""} };
     formPhoto = p.photo || "";
     var goalParts = (p.goal||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
     var goalCustom = goalParts.filter(function(g){ return GOALS.indexOf(g) < 0; });
@@ -740,6 +755,7 @@
         row("1","Fill out your badge","name, what you do, what you’re into") +
         row("2","Show it at the event","a QR code is your badge — no printing, no app store") +
         row("3","Get a nudge 5 hours later","a private prompt to jot a note before you forget") +
+        row("4","It’s saved right here","reopen this page anytime — this device remembers your badge, no need to make a new one") +
       '</div>' : '') +
 
       '<form id="profileForm" style="display:flex; flex-direction:column; gap:16px;">' +
@@ -762,6 +778,11 @@
             return '<button type="button" class="chip'+(goalParts.indexOf(g)>=0?' selected':'')+'" data-goal="'+escapeHtml(g)+'">'+g+'</button>';
           }).join("") + '</div>' +
           '<input type="text" id="fGoalOther" placeholder="Or describe your own…" value="'+escapeHtml(goalCustom.join(", "))+'" style="margin-top:8px">' +
+        '</label>' +
+
+        '<label class="field"><span class="flabel">Event you’re at (optional)</span>' +
+          '<input type="text" id="fEvent" value="'+escapeHtml(p.event||"")+'" placeholder="Geek Breakfast">' +
+          '<p class="footnote" style="margin:0">Shown to people you connect with — update this each time you head to a new event.</p>' +
         '</label>' +
 
         tagField("Professional interests","profTags",p.profTags,"e.g. Communication, ADHD, Marketing") +
@@ -828,6 +849,10 @@
     return '' +
     '<div class="badge-card">' +
       '<div class="badge-punch"></div>' +
+      (p.event ?
+        '<div class="badge-event">'+ICONS.pin+' At '+escapeHtml(p.event)+'</div>' :
+        '<button type="button" class="badge-event badge-event-empty" id="btnSetEvent">'+ICONS.pin+' Heading to an event? Tap to add it</button>'
+      ) +
       '<div class="badge-head">' +
         '<div class="avatar" style="'+av+'">'+ (p.photo? "" : initials(p.name)) +'</div>' +
         '<div class="badge-name"><span class="display">'+escapeHtml(p.name)+'</span>' +
@@ -962,7 +987,7 @@
         '<div class="conn-info">' +
           '<div class="name-row"><span class="name">'+escapeHtml(p.name)+'</span>'+(c.sample?'<span class="sample-flag">Sample</span>':'')+'</div>' +
           (p.headline? '<div class="headline">'+escapeHtml(p.headline)+'</div>' : '') +
-          '<div class="conn-meta">Met '+fmtWhen(c.connectedAt)+(p.goal? ' · '+escapeHtml(p.goal):'')+'</div>' +
+          '<div class="conn-meta">Met '+fmtWhen(c.connectedAt)+(c.event? ' at '+escapeHtml(c.event):'')+(p.goal? ' · '+escapeHtml(p.goal):'')+'</div>' +
         '</div>' +
         '<button class="kebab" data-delete="'+c.__id+'" aria-label="Remove">'+ICONS.trash+'</button>' +
       '</div>' +
@@ -986,6 +1011,18 @@
         '<button class="btn btn-ghost btn-block" id="btnRemindOverlay" style="margin-top:14px">'+ICONS.bell+' Remind me to follow up</button>' +
         '<p class="footnote" id="overlayReminderStatus" style="min-height:14px; text-align:center"></p>' +
         '<button class="btn btn-primary btn-block" id="btnCloseOverlay" style="margin-top:4px">See connections</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderBadgeSavedOverlay(){
+    return '<div class="overlay" id="badgeSavedOverlay">' +
+      '<div class="stamp-card">' +
+        '<div class="stamp-seal"><img src="'+MASCOT_ICON+'" alt="" style="width:44px;height:44px;object-fit:contain;"/></div>' +
+        '<div class="display">BADGE SAVED</div>' +
+        '<p>It’s saved right here on this device — no account, nothing to remember. Just reopen this page next time and your badge will be exactly as you left it.</p>' +
+        '<p class="footnote" style="margin-top:10px">Tip: add NicePeople to your Home Screen (Settings → “Add to home screen”) so it’s always one tap away.</p>' +
+        '<button class="btn btn-primary btn-block" id="btnCloseBadgeSaved" style="margin-top:14px">Got it</button>' +
       '</div>' +
     '</div>';
   }
@@ -1024,7 +1061,7 @@
     return '<div class="sheet-backdrop" id="sheetBackdrop">' +
       '<div class="sheet">' +
         '<div class="sheet-title">SETTINGS</div>' +
-        '<div style="font-size:13.5px; color:var(--text-muted); line-height:1.5">NicePeople is an alpha. Your badge and connections are stored only on this device.</div>' +
+        '<div style="font-size:13.5px; color:var(--text-muted); line-height:1.5">NicePeople is an alpha. Your badge and connections are saved automatically, right here on this device — just reopen this page to see them again, no need to make a new badge.</div>' +
         backupSection +
         a2hsSection +
         (state.resetArmed ?
@@ -1400,14 +1437,14 @@
     return v;
   }
   function buildConnectionsCsv(){
-    var header = ["Name","Headline","Goal","Professional interests","Personal interests","Email","Phone","LinkedIn","Instagram","Personal URL","Met at","Note"];
+    var header = ["Name","Headline","Goal","Professional interests","Personal interests","Email","Phone","LinkedIn","Instagram","Personal URL","Event","Met on","Note"];
     var rows = state.connections.slice().sort(function(a,b){ return b.connectedAt - a.connectedAt; }).map(function(c){
       var p = c.profile;
       return [
         p.name, p.headline, p.goal,
         (p.profTags||[]).join("; "), (p.persTags||[]).join("; "),
         p.contact&&p.contact.email, p.contact&&p.contact.phone, p.contact&&p.contact.linkedin, p.contact&&p.contact.instagram, p.contact&&p.contact.other,
-        new Date(c.connectedAt).toLocaleString(), c.notes
+        c.event||"", new Date(c.connectedAt).toLocaleString(), c.notes
       ].map(csvEscape).join(",");
     });
     return header.map(csvEscape).join(",") + "\n" + rows.join("\n") + "\n";
@@ -1546,7 +1583,8 @@
       return;
     }
 
-    state.connections.push({ profile:profile, connectedAt: Date.now(), notes:"", noteAddedAt:null });
+    var metAt = (state.me.event || profile.event || "").trim();
+    state.connections.push({ profile:profile, connectedAt: Date.now(), event:metAt, notes:"", noteAddedAt:null });
     saveConns(state.connections);
     state.justConnected = profile;
     state.tab = "conns";
@@ -1632,6 +1670,13 @@
 
     var btnEdit = document.getElementById("btnEdit");
     if(btnEdit) btnEdit.onclick = function(){ state.editing = true; render(); };
+    var btnSetEvent = document.getElementById("btnSetEvent");
+    if(btnSetEvent) btnSetEvent.onclick = function(){ state.editing = true; state.focusEventField = true; render(); };
+    if(state.editing && state.focusEventField){
+      state.focusEventField = false;
+      var fEvent = document.getElementById("fEvent");
+      if(fEvent) fEvent.focus();
+    }
     var btnSaveBadge = document.getElementById("btnSaveBadge");
     if(btnSaveBadge) btnSaveBadge.onclick = saveBadgeImage;
     var btnExportConns = document.getElementById("btnExportConns");
@@ -1758,6 +1803,8 @@
 
     var btnCloseOverlay = document.getElementById("btnCloseOverlay");
     if(btnCloseOverlay) btnCloseOverlay.onclick = function(){ state.justConnected = null; render(); };
+    var btnCloseBadgeSaved = document.getElementById("btnCloseBadgeSaved");
+    if(btnCloseBadgeSaved) btnCloseBadgeSaved.onclick = function(){ state.justCreated = false; render(); };
     var btnRemindOverlay = document.getElementById("btnRemindOverlay");
     if(btnRemindOverlay) btnRemindOverlay.onclick = function(){
       var p = state.justConnected;
@@ -1837,10 +1884,12 @@
     if(goalOther) goalChipVals.push(goalOther);
     var goal = goalChipVals.join(", ");
 
+    var isNewProfile = !(state.editing && state.me);
     var profile = state.editing && state.me ? Object.assign({}, state.me) : { id: uid("u") };
     profile.name = name;
     profile.headline = document.getElementById("fHeadline").value.trim();
     profile.goal = goal;
+    profile.event = document.getElementById("fEvent").value.trim();
     profile.photo = formPhoto || "";
     profile.profTags = formTags.profTags.slice();
     profile.persTags = formTags.persTags.slice();
@@ -1865,6 +1914,7 @@
       processConnectPayload(encodeProfile(pending));
     } else {
       maybeSeed();
+      if(isNewProfile) state.justCreated = true;
     }
     render();
   }
@@ -1899,7 +1949,8 @@
   // when entering edit mode later, refresh form tag state
   var _origRender = render;
   document.addEventListener("click", function(e){
-    if(e.target && e.target.id === "btnEdit" && state.me){
+    var t = e.target && e.target.closest && e.target.closest("#btnEdit, #btnSetEvent");
+    if(t && state.me){
       formTags = { profTags:(state.me.profTags||[]).slice(), persTags:(state.me.persTags||[]).slice() };
     }
   }, true);
