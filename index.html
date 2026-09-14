@@ -1,6 +1,11 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <meta charset="utf-8">
 <title>NicePeople</title>
+<meta name="theme-color" content="#f2f0eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="NicePeople">
 <style>
   @font-face {
     font-family:'Fengardo Neue Black';
@@ -341,6 +346,9 @@
   .note-compose-actions{display:flex; gap:8px; justify-content:flex-end;}
   .locked-note{font-size:12px; color:var(--text-faint); margin-top:10px;}
 
+  .catchup-block{margin-top:12px; padding-top:12px; border-top:1px dashed var(--hairline);}
+  .catchup-block .footnote{font-size:12px; color:var(--text-muted); text-align:left;}
+
   .confirm-inline{display:flex; gap:8px; align-items:center; margin-top:10px;}
   .confirm-inline span{font-size:12.5px; color:var(--text-muted);}
 
@@ -405,6 +413,7 @@
     display:flex; flex-direction:column; gap:14px;
   }
   .sheet-title{font-family:'Fengardo Neue Black',sans-serif; font-weight:800; font-size:20px;}
+  .sheet-section{border-top:1px solid var(--hairline); padding-top:14px;}
   .footnote{color:var(--text-faint); font-size:11.5px; text-align:center; line-height:1.5; margin-top:6px;}
   .app-footer{color:var(--text-faint); font-size:11px; text-align:center; line-height:1.5; margin-top:22px; padding-top:2px;}
   .app-footer a{color:var(--text-muted); text-decoration:underline; text-underline-offset:2px;}
@@ -432,7 +441,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
 <script>
 (function(){
   "use strict";
@@ -474,12 +482,13 @@
     return s.toUpperCase();
   }
 
-  function encodeProfile(p){
+  function encodeProfile(p, includePhoto){
     var o = { i:p.id, n:p.name };
     if(p.headline) o.h = p.headline;
     if(p.goal) o.g = p.goal;
     if(p.profTags && p.profTags.length) o.p = p.profTags;
     if(p.persTags && p.persTags.length) o.s = p.persTags;
+    if(includePhoto && p.photo) o.ph = p.photo;
     var c = {};
     if(p.contact){
       if(p.contact.email) c.e = p.contact.email;
@@ -496,7 +505,7 @@
       var o = JSON.parse(b64urlDecode(str));
       if(!o.i || !o.n) return null;
       return {
-        id:o.i, name:o.n, headline:o.h||"", goal:o.g||"",
+        id:o.i, name:o.n, headline:o.h||"", goal:o.g||"", photo:o.ph||"",
         profTags:o.p||[], persTags:o.s||[],
         contact:{ email:(o.c&&o.c.e)||"", phone:(o.c&&o.c.t)||"", linkedin:(o.c&&o.c.l)||"", instagram:(o.c&&o.c.ig)||"", other:(o.c&&o.c.o)||"" }
       };
@@ -506,6 +515,10 @@
   function connectUrl(profile){
     var base = location.origin + location.pathname;
     return base + "?c=" + encodeProfile(profile);
+  }
+  function backupUrl(profile){
+    var base = location.origin + location.pathname;
+    return base + "?restore=" + encodeProfile(profile, true);
   }
 
   function fmtWhen(ts){
@@ -518,6 +531,8 @@
   function hoursSince(ts){ return (Date.now() - ts) / 3600000; }
 
   var NOTE_WAIT_HOURS = 5;
+  var CATCHUP_WAIT_HOURS = NOTE_WAIT_HOURS + 12; // ready once the 2nd follow-up reminder has fired
+  var CATCHUP_DAY_OPTIONS = [30,60,90];
 
   /* ---------------- icons ---------------- */
   var ICONS = {
@@ -553,6 +568,9 @@
     justConnected: null,  // profile just added, for overlay
     settingsOpen: false,
     resetArmed: false,
+    backupOpen: false,     // "get my backup link" panel expanded in settings
+    a2hsHelpOpen: false,   // "add to home screen" help expanded in settings
+    restorePending: null,  // decoded profile from a ?restore= link, awaiting overwrite confirmation
     noteDraft: {},         // connId -> draft text while composing
     composingNote: null,   // connId currently open for note entry
     deleteArmed: null      // connId armed for delete confirm
@@ -595,11 +613,12 @@
       html = renderOnboarding(true);
     } else {
       html += renderTopbar();
-      html += '<main>' + renderTab() + renderFooter() + '</main>';
+      html += '<main>' + (shouldShowA2hsBanner() ? renderA2hsBanner() : "") + renderTab() + renderFooter() + '</main>';
       html += renderTabbar();
     }
 
     if(state.justConnected){ html += renderConnectedOverlay(); }
+    if(state.restorePending){ html += renderRestoreConfirm(); }
     if(state.settingsOpen){ html += renderSettingsSheet(); }
 
     app.innerHTML = html;
@@ -887,6 +906,7 @@
   }
 
   function isDue(c){ return !c.notes && hoursSince(c.connectedAt) >= NOTE_WAIT_HOURS; }
+  function isCatchUpReady(c){ return hoursSince(c.connectedAt) >= CATCHUP_WAIT_HOURS; }
 
   function renderConnCard(c){
     var p = c.profile;
@@ -926,6 +946,16 @@
     var deleteUi = state.deleteArmed === c.__id ?
       '<div class="confirm-inline"><span>Remove this connection?</span><button class="btn btn-danger btn-sm" data-confirmdel="'+c.__id+'">Delete</button><button class="btn btn-ghost btn-sm" data-canceldel="'+c.__id+'">Cancel</button></div>' : "";
 
+    var catchUpUi = isCatchUpReady(c) ?
+      '<div class="catchup-block">' +
+        '<div class="footnote" style="margin:0 0 6px">'+ICONS.bell+' 3rd of the 3 Ups — ready to catch up? Schedule a check-in call:</div>' +
+        '<div class="chiprow">' + CATCHUP_DAY_OPTIONS.map(function(d){
+          return '<button type="button" class="chip'+(c.catchUpDays===d?' selected':'')+'" data-catchup="'+c.__id+'" data-catchupdays="'+d+'">'+d+' days</button>';
+        }).join("") + '</div>' +
+        (c.catchUpScheduledAt ? '<div class="footnote" style="margin-top:6px">Catch-up reminder set for '+new Date(c.catchUpScheduledAt).toLocaleDateString()+'.</div>' : '') +
+        '<span class="footnote" id="catchupStatus_'+c.__id+'" style="min-height:14px; display:block; margin-top:4px;"></span>' +
+      '</div>' : "";
+
     return '<div class="conn-card'+(due?' due':'')+'">' +
       '<div class="conn-top">' +
         '<div class="avatar" style="'+av+'; width:46px; height:46px; font-size:17px; border-radius:12px;">'+initials(p.name)+'</div>' +
@@ -939,6 +969,7 @@
       (tags.length? '<div class="conn-tags">'+tags.map(function(t){return '<span class="chip tag">'+escapeHtml(t)+'</span>';}).join("")+'</div>' : '') +
       (contactIcons? '<div class="contact-row">'+contactIcons+'</div>' : '') +
       noteArea +
+      catchUpUi +
       deleteUi +
     '</div>';
   }
@@ -960,16 +991,83 @@
   }
 
   function renderSettingsSheet(){
+    var backupSection = state.me ? (
+      '<div class="sheet-section">' +
+        '<div class="flabel" style="margin-bottom:6px">BACK UP YOUR BADGE</div>' +
+        '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0 0 8px">Your badge and connections live only in this browser. Get a personal link that restores your exact badge — photo included — on any device.</p>' +
+        (state.backupOpen ?
+          '<div style="background:var(--surface-2); border:1px solid var(--hairline); border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:9px;">' +
+            '<div class="mono" style="font-size:11px; color:var(--text-faint); word-break:break-all; line-height:1.5;">'+escapeHtml(backupUrl(state.me))+'</div>' +
+            '<button type="button" class="btn btn-ghost btn-sm" id="btnCopyBackup">Copy backup link</button>' +
+            '<span id="backupCopyStatus" class="mono" style="font-size:11.5px; color:var(--stamp); display:none;">Copied — save it in Notes, or text it to yourself.</span>' +
+          '</div>' :
+          '<button class="btn btn-ghost btn-block" id="btnShowBackup">Get my backup link</button>'
+        ) +
+      '</div>'
+    ) : "";
+
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    var a2hsSection =
+      '<div class="sheet-section">' +
+        '<div class="flabel" style="margin-bottom:6px">KEEP IT ONE TAP AWAY</div>' +
+        (state.a2hsHelpOpen ?
+          '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0">'+
+            (ios ?
+              'Tap the Share icon in your browser bar, then choose “Add to Home Screen.” NicePeople will open like an app, and it’s less likely to be cleared from your browser’s cache.' :
+              'Open your browser’s menu and choose “Add to Home screen” (or “Install app”). NicePeople will open like an app, and it’s less likely to be cleared from your browser’s cache.'
+            ) +
+          '</p>' :
+          '<button class="btn btn-ghost btn-block" id="btnShowA2hsHelp">Add to home screen</button>'
+        ) +
+      '</div>';
+
     return '<div class="sheet-backdrop" id="sheetBackdrop">' +
       '<div class="sheet">' +
         '<div class="sheet-title">SETTINGS</div>' +
         '<div style="font-size:13.5px; color:var(--text-muted); line-height:1.5">NicePeople is an alpha. Your badge and connections are stored only on this device.</div>' +
+        backupSection +
+        a2hsSection +
         (state.resetArmed ?
           '<div class="confirm-inline"><span>Erase your badge and all connections?</span><button class="btn btn-danger btn-sm" id="btnResetConfirm">Erase</button><button class="btn btn-ghost btn-sm" id="btnResetCancel">Cancel</button></div>' :
           '<button class="btn btn-ghost btn-block" id="btnResetStart">Reset all data on this device</button>'
         ) +
         '<button class="btn btn-text" id="btnCloseSheet">Close</button>' +
       '</div>' +
+    '</div>';
+  }
+
+  /* ---------------- restore-from-backup confirm ---------------- */
+  function renderRestoreConfirm(){
+    var r = state.restorePending;
+    return '<div class="sheet-backdrop" id="restoreBackdrop">' +
+      '<div class="sheet">' +
+        '<div class="sheet-title">RESTORE THIS BADGE?</div>' +
+        '<div style="font-size:13.5px; color:var(--text-muted); line-height:1.5">This device already has a badge for <strong style="color:var(--text)">'+escapeHtml(state.me?state.me.name:"")+'</strong>. Restoring will replace it on this device with the backed-up badge for <strong style="color:var(--text)">'+escapeHtml(r.name)+'</strong>. Your connections are kept either way.</div>' +
+        '<button class="btn btn-primary btn-block" id="btnRestoreConfirm">Restore this badge</button>' +
+        '<button class="btn btn-text" id="btnRestoreCancel">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ---------------- add-to-home-screen nudge ---------------- */
+  var LS_A2HS_DISMISSED = "nicepeople_a2hs_dismissed_v1";
+  function isStandaloneDisplay(){
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  }
+  function shouldShowA2hsBanner(){
+    if(isStandaloneDisplay()) return false;
+    try{ if(localStorage.getItem(LS_A2HS_DISMISSED)) return false; }catch(e){}
+    return true;
+  }
+  function renderA2hsBanner(){
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    var tip = ios ?
+      'Add NicePeople to your Home Screen (Share icon → “Add to Home Screen”) so your badge is one tap away — even if your browser clears its cache.' :
+      'Add NicePeople to your Home Screen (browser menu → “Add to Home screen”) so your badge is one tap away — even if your browser clears its cache.';
+    return '<div class="due-banner" id="a2hsBanner" style="align-items:flex-start">' +
+      ICONS.pin +
+      '<span style="flex:1">'+tip+'</span>' +
+      '<button type="button" class="icon-btn" id="btnA2hsDismiss" aria-label="Dismiss" style="flex-shrink:0">'+ICONS.close+'</button>' +
     '</div>';
   }
 
@@ -1247,6 +1345,54 @@
     });
   }
 
+  function buildCatchUpIcs(c, days){
+    var p = c.profile;
+    var now = new Date();
+    var start = new Date(Date.now() + days*24*3600000);
+    var end = new Date(start.getTime()+20*60000);
+    var lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//NicePeople//Catch Up//EN",
+      "CALSCALE:GREGORIAN",
+      "BEGIN:VEVENT",
+      "UID:"+(c.__id||uid("cu"))+"-catchup-"+days+"-"+now.getTime()+"@nicepeople.app",
+      "DTSTAMP:"+icsDate(now),
+      "DTSTART:"+icsDate(start),
+      "DTEND:"+icsDate(end),
+      "SUMMARY:"+icsEscape("Catch up with "+p.name),
+      "DESCRIPTION:"+icsEscape("3rd of the 3 Ups of Networking: Show up, Follow up, Catch up. It's been "+days+" days since you followed up with "+p.name+" — reach out and schedule a quick catch-up call."),
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:"+icsEscape("Catch up with "+p.name),
+      "TRIGGER:PT0M",
+      "END:VALARM",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ];
+    return lines.join("\r\n")+"\r\n";
+  }
+  function downloadCatchUpReminder(c, days, statusId){
+    if(statusId) setStatus(statusId, "Preparing your catch-up reminder…", false);
+    var ics = buildCatchUpIcs(c, days);
+    var blob = new Blob([ics], { type:"text/calendar;charset=utf-8" });
+    var filename = "catch-up-"+days+"d-"+slugify(c.profile.name)+".ics";
+    getDownloads().then(function(downloads){
+      function fallback(){
+        var ok = browserDownload(filename, blob);
+        if(statusId) setStatus(statusId, ok ? "Catch-up reminder saved — add it to your calendar." : "Couldn’t create that — try again.", !ok);
+      }
+      if(downloads){
+        downloads.save({ filename:filename, data:blob }).then(function(){
+          if(statusId) setStatus(statusId, "Catch-up reminder saved.", false);
+        }).catch(function(err){
+          if(err && err.code === "declined"){ if(statusId) setStatus(statusId,"",false); return; }
+          fallback();
+        });
+      } else { fallback(); }
+    });
+  }
+
   /* ---------------- connections CSV export ---------------- */
   function csvEscape(v){
     v = String(v==null?"":v);
@@ -1299,12 +1445,26 @@
 
   /* ---------------- scanning ---------------- */
   var scanStream = null, scanRAF = null;
+  var _jsQrPromise = null;
+  function loadJsQR(){
+    if(typeof jsQR !== "undefined") return Promise.resolve();
+    if(_jsQrPromise) return _jsQrPromise;
+    _jsQrPromise = new Promise(function(resolve, reject){
+      var s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js";
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ _jsQrPromise = null; reject(new Error("jsQR failed to load")); };
+      document.head.appendChild(s);
+    });
+    return _jsQrPromise;
+  }
   function startScan(){
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       flashScanStatus("This browser can’t open the camera here — use your phone’s regular camera app, or paste a badge link below.");
       return;
     }
     state.scanning = true; render();
+    loadJsQR().catch(function(){}); // fetched in parallel with the camera prompt; the scan loop checks for it defensively
     navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" } }).then(function(stream){
       scanStream = stream;
       var video = document.getElementById("scanVideo");
@@ -1341,14 +1501,20 @@
   function handleScannedText(text){
     state.scanning = false;
     stopScanIfRunning();
-    var cParam = null;
+    var cParam = null, restoreParam = null;
     try{
       var u = new URL(text);
       cParam = u.searchParams.get("c");
+      restoreParam = u.searchParams.get("restore");
     }catch(e){
-      var m = text.match(/[?&]c=([^&]+)/);
-      cParam = m ? m[1] : text;
+      var m = text.match(/[?&]restore=([^&]+)/);
+      restoreParam = m ? m[1] : null;
+      if(!restoreParam){
+        var m2 = text.match(/[?&]c=([^&]+)/);
+        cParam = m2 ? m2[1] : text;
+      }
     }
+    if(restoreParam){ processRestorePayload(restoreParam); return; }
     if(!cParam){ flashScanStatus("That doesn’t look like a NicePeople badge."); return; }
     processConnectPayload(cParam);
   }
@@ -1387,6 +1553,30 @@
     render();
   }
 
+  /* ---------------- restore-from-backup flow ---------------- */
+  function processRestorePayload(restoreParam){
+    var restored = decodeProfile(restoreParam);
+    if(!restored){ flashScanStatus("That backup link looks damaged."); return; }
+
+    if(!state.me){
+      state.me = restored;
+      saveMe(restored);
+      state.tab = "badge";
+      render();
+      return;
+    }
+    if(state.me.id === restored.id){
+      state.me = restored;
+      saveMe(restored);
+      state.tab = "badge";
+      render();
+      return;
+    }
+    // a different badge already lives on this device — confirm before overwriting it
+    state.restorePending = restored;
+    render();
+  }
+
   /* ---------------- event wiring ---------------- */
   function wireUp(){
     ensureConnIds();
@@ -1396,10 +1586,11 @@
     var btnSettings = document.getElementById("btnSettings");
     if(btnSettings) btnSettings.onclick = function(){ state.settingsOpen = true; render(); };
 
+    function closeSheet(){ state.settingsOpen=false; state.resetArmed=false; state.backupOpen=false; state.a2hsHelpOpen=false; render(); }
     var sheetBackdrop = document.getElementById("sheetBackdrop");
-    if(sheetBackdrop) sheetBackdrop.onclick = function(e){ if(e.target===sheetBackdrop){ state.settingsOpen=false; state.resetArmed=false; render(); } };
+    if(sheetBackdrop) sheetBackdrop.onclick = function(e){ if(e.target===sheetBackdrop){ closeSheet(); } };
     var btnCloseSheet = document.getElementById("btnCloseSheet");
-    if(btnCloseSheet) btnCloseSheet.onclick = function(){ state.settingsOpen=false; state.resetArmed=false; render(); };
+    if(btnCloseSheet) btnCloseSheet.onclick = closeSheet;
     var btnResetStart = document.getElementById("btnResetStart");
     if(btnResetStart) btnResetStart.onclick = function(){ state.resetArmed = true; render(); };
     var btnResetCancel = document.getElementById("btnResetCancel");
@@ -1410,6 +1601,30 @@
       state.me=null; state.connections=[]; state.settingsOpen=false; state.resetArmed=false; state.tab="badge";
       render();
     };
+    var btnShowBackup = document.getElementById("btnShowBackup");
+    if(btnShowBackup) btnShowBackup.onclick = function(){ state.backupOpen = true; render(); };
+    var btnCopyBackup = document.getElementById("btnCopyBackup");
+    if(btnCopyBackup) btnCopyBackup.onclick = function(){
+      var link = backupUrl(state.me);
+      function shown(){ var s = document.getElementById("backupCopyStatus"); if(s) s.style.display = "block"; }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(link).then(shown).catch(function(){ legacyCopy(link, shown); });
+      } else { legacyCopy(link, shown); }
+    };
+    var btnShowA2hsHelp = document.getElementById("btnShowA2hsHelp");
+    if(btnShowA2hsHelp) btnShowA2hsHelp.onclick = function(){ state.a2hsHelpOpen = true; render(); };
+    var btnA2hsDismiss = document.getElementById("btnA2hsDismiss");
+    if(btnA2hsDismiss) btnA2hsDismiss.onclick = function(){ try{ localStorage.setItem(LS_A2HS_DISMISSED,"1"); }catch(e){} render(); };
+    var btnRestoreConfirm = document.getElementById("btnRestoreConfirm");
+    if(btnRestoreConfirm) btnRestoreConfirm.onclick = function(){
+      state.me = state.restorePending;
+      saveMe(state.me);
+      state.restorePending = null;
+      formTags = { profTags:(state.me.profTags||[]).slice(), persTags:(state.me.persTags||[]).slice() };
+      render();
+    };
+    var btnRestoreCancel = document.getElementById("btnRestoreCancel");
+    if(btnRestoreCancel) btnRestoreCancel.onclick = function(){ state.restorePending = null; render(); };
 
     document.querySelectorAll(".tab").forEach(function(t){
       t.onclick = function(){ state.tab = t.getAttribute("data-tab"); render(); };
@@ -1509,6 +1724,21 @@
         var id = b.getAttribute("data-remind");
         var c = findConnById(id);
         if(c) downloadFollowUpReminder(c);
+      };
+    });
+    document.querySelectorAll("[data-catchupdays]").forEach(function(b){
+      b.onclick = function(){
+        var id = b.getAttribute("data-catchup");
+        var days = parseInt(b.getAttribute("data-catchupdays"),10);
+        var c = findConnById(id);
+        if(!c) return;
+        c.catchUpDays = days;
+        c.catchUpScheduledAt = Date.now() + days*86400000;
+        saveConns(state.connections);
+        var group = b.parentElement;
+        if(group) group.querySelectorAll(".chip").forEach(function(x){ x.classList.remove("selected"); });
+        b.classList.add("selected");
+        downloadCatchUpReminder(c, days, "catchupStatus_"+id);
       };
     });
     document.querySelectorAll("[data-delete]").forEach(function(b){
@@ -1641,10 +1871,19 @@
 
   /* ---------------- boot ---------------- */
   function boot(){
+    if(navigator.storage && navigator.storage.persist){
+      navigator.storage.persist().catch(function(){});
+    }
+
     var params = new URLSearchParams(location.search);
     var cParam = params.get("c");
-    if(cParam){
+    var restoreParam = params.get("restore");
+    if(cParam || restoreParam){
       history.replaceState(null, "", location.origin + location.pathname);
+    }
+    if(restoreParam){
+      processRestorePayload(restoreParam);
+    } else if(cParam){
       var decoded = decodeProfile(cParam);
       if(decoded && (!state.me || decoded.id !== state.me.id)){
         if(state.me){ processConnectPayload(cParam); }
