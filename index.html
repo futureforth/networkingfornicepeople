@@ -693,6 +693,19 @@
     var subject = "You met " + p.name + " — finish your NicePeople badge";
     return "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(reminderBody(p, link));
   }
+  function backupMailtoHref(link){
+    var body = [
+      "Save this email — it restores your exact NicePeople badge (photo included) on any device or browser.",
+      "",
+      "Especially worth doing if you made your badge in a private/incognito tab, or a browser that clears data automatically (like DuckDuckGo) — that browser won’t remember it for you.",
+      "",
+      "Tap this link any time to get your badge back:",
+      link,
+      "",
+      "— NicePeople (skip the feed)"
+    ].join("\n");
+    return "mailto:?subject=" + encodeURIComponent("My NicePeople badge backup") + "&body=" + encodeURIComponent(body);
+  }
   function legacyCopy(text, cb){
     try{
       var ta = document.createElement("textarea");
@@ -1016,13 +1029,18 @@
   }
 
   function renderBadgeSavedOverlay(){
+    var link = backupUrl(state.me);
     return '<div class="overlay" id="badgeSavedOverlay">' +
       '<div class="stamp-card">' +
         '<div class="stamp-seal"><img src="'+MASCOT_ICON+'" alt="" style="width:44px;height:44px;object-fit:contain;"/></div>' +
         '<div class="display">BADGE SAVED</div>' +
         '<p>It’s saved right here on this device — no account, nothing to remember. Just reopen this page next time and your badge will be exactly as you left it.</p>' +
-        '<p class="footnote" style="margin-top:10px">Tip: add NicePeople to your Home Screen (Settings → “Add to home screen”) so it’s always one tap away.</p>' +
-        '<button class="btn btn-primary btn-block" id="btnCloseBadgeSaved" style="margin-top:14px">Got it</button>' +
+        '<p class="footnote" style="margin-top:10px; color:var(--danger); font-weight:600;">Using a private/incognito tab, or a browser that clears data automatically (like DuckDuckGo)? This device won’t remember it — back it up now, just in case:</p>' +
+        '<a class="btn btn-ghost btn-block" id="btnEmailBackup" href="'+attr(backupMailtoHref(link))+'" style="margin-top:8px">'+ICONS.mail+' Email myself a backup link</a>' +
+        '<button type="button" class="btn btn-text btn-sm" id="btnCopyBackupOverlay" style="margin-top:6px">Copy backup link instead</button>' +
+        '<span id="badgeSavedCopyStatus" class="mono" style="font-size:11.5px; color:var(--stamp); display:none; margin-top:4px;">Copied — paste it in Notes or a text to yourself.</span>' +
+        '<p class="footnote" style="margin-top:12px">Tip: add NicePeople to your Home Screen (Settings → “Add to home screen”) so it’s always one tap away.</p>' +
+        '<button class="btn btn-primary btn-block" id="btnCloseBadgeSaved" style="margin-top:10px">Got it</button>' +
       '</div>' +
     '</div>';
   }
@@ -1805,6 +1823,14 @@
     if(btnCloseOverlay) btnCloseOverlay.onclick = function(){ state.justConnected = null; render(); };
     var btnCloseBadgeSaved = document.getElementById("btnCloseBadgeSaved");
     if(btnCloseBadgeSaved) btnCloseBadgeSaved.onclick = function(){ state.justCreated = false; render(); };
+    var btnCopyBackupOverlay = document.getElementById("btnCopyBackupOverlay");
+    if(btnCopyBackupOverlay) btnCopyBackupOverlay.onclick = function(){
+      var link = backupUrl(state.me);
+      function shown(){ var s = document.getElementById("badgeSavedCopyStatus"); if(s) s.style.display = "block"; }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(link).then(shown).catch(function(){ legacyCopy(link, shown); });
+      } else { legacyCopy(link, shown); }
+    };
     var btnRemindOverlay = document.getElementById("btnRemindOverlay");
     if(btnRemindOverlay) btnRemindOverlay.onclick = function(){
       var p = state.justConnected;
