@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <meta charset="utf-8">
 <title>NicePeople</title>
 <style>
@@ -145,6 +146,28 @@
   }
   input::placeholder, textarea::placeholder{color:var(--text-faint);}
   textarea{resize:vertical; min-height:76px; font-family:'Fengardo Neue',sans-serif;}
+
+  .url-prefix-input{
+    display:flex; align-items:center;
+    background:var(--surface-2);
+    border:1px solid var(--hairline);
+    border-radius:10px;
+    padding:0 13px;
+  }
+  .url-prefix-input .url-prefix-text{
+    font-family:'Fengardo Neue',sans-serif;
+    font-size:15px;
+    color:var(--text-faint);
+    white-space:nowrap;
+    padding:12px 0;
+  }
+  .url-prefix-input input[type=text]{
+    border:none; background:transparent; padding:12px 0 12px 2px; width:100%;
+  }
+
+  .photo-picker{display:flex; align-items:center; gap:14px;}
+  .photo-picker .avatar{width:64px; height:64px; font-size:20px; flex-shrink:0;}
+  .photo-picker .photo-actions{display:flex; flex-direction:column; gap:6px;}
 
   .chiprow{display:flex; flex-wrap:wrap; gap:8px;}
   .chip{
@@ -462,6 +485,7 @@
       if(p.contact.email) c.e = p.contact.email;
       if(p.contact.phone) c.t = p.contact.phone;
       if(p.contact.linkedin) c.l = p.contact.linkedin;
+      if(p.contact.instagram) c.ig = p.contact.instagram;
       if(p.contact.other) c.o = p.contact.other;
     }
     if(Object.keys(c).length) o.c = c;
@@ -474,7 +498,7 @@
       return {
         id:o.i, name:o.n, headline:o.h||"", goal:o.g||"",
         profTags:o.p||[], persTags:o.s||[],
-        contact:{ email:(o.c&&o.c.e)||"", phone:(o.c&&o.c.t)||"", linkedin:(o.c&&o.c.l)||"", other:(o.c&&o.c.o)||"" }
+        contact:{ email:(o.c&&o.c.e)||"", phone:(o.c&&o.c.t)||"", linkedin:(o.c&&o.c.l)||"", instagram:(o.c&&o.c.ig)||"", other:(o.c&&o.c.o)||"" }
       };
     }catch(e){ return null; }
   }
@@ -505,6 +529,8 @@
     phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4h3l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5l1.5-2 4 1.5v3a1.5 1.5 0 0 1-1.6 1.5A16.5 16.5 0 0 1 4 6.6 1.5 1.5 0 0 1 5.5 4z"/></svg>',
     link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5 14.5 9.5"/><path d="M11 7l1-1a3.5 3.5 0 0 1 5 5l-1 1"/><path d="M13 17l-1 1a3.5 3.5 0 0 1-5-5l1-1"/></svg>',
     globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.2 2.3 3.3 5 3.3 8s-1.1 5.7-3.3 8c-2.2-2.3-3.3-5-3.3-8s1.1-5.7 3.3-8z"/></svg>',
+    instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="16.5" cy="7.5" r="0.6" fill="currentColor" stroke="none"/></svg>',
+    bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6.2H4c.5-.7 2-2.2 2-6.2z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>',
     trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 12a1.5 1.5 0 0 0 1.5 1.4h5a1.5 1.5 0 0 0 1.5-1.4L17 7"/></svg>',
     download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11.5"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 18.5h14"/></svg>',
     pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4.5 4.5L18 8"/></svg>',
@@ -671,7 +697,10 @@
 
   /* ---------------- onboarding ---------------- */
   function renderOnboarding(isEdit){
-    var p = isEdit ? state.me : { name:"", headline:"", goal:"", profTags:[], persTags:[], contact:{email:"",phone:"",linkedin:"",other:""} };
+    var p = isEdit ? state.me : { name:"", headline:"", goal:"", photo:"", profTags:[], persTags:[], contact:{email:"",phone:"",linkedin:"",instagram:"",other:""} };
+    formPhoto = p.photo || "";
+    var goalParts = (p.goal||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
+    var goalCustom = goalParts.filter(function(g){ return GOALS.indexOf(g) < 0; });
     var pendingNote = (!isEdit && state.pending) ?
       '<div class="due-banner" style="margin-bottom:4px"><span>'+ICONS.pin+'</span><span><strong>'+escapeHtml(state.pending.name)+'</strong> shared their badge with you. Make your own to connect back.</span></div>' : "";
 
@@ -698,11 +727,22 @@
         field("Your name *","fName","text",p.name,"Dana Whitfield") +
         field("Role & company","fHeadline","text",p.headline,"Product Lead, Loop Studio") +
 
-        '<label class="field"><span class="flabel">Right now you’re…</span>' +
+        '<label class="field"><span class="flabel">Photo (optional)</span>' +
+          '<div class="photo-picker">' +
+            '<div class="avatar" id="photoPreview" style="'+(formPhoto?('background-image:url('+formPhoto+')'):('background:'+colorForName(p.name||"")))+'">'+(formPhoto?"":initials(p.name||"?"))+'</div>' +
+            '<div class="photo-actions">' +
+              '<label class="btn btn-ghost btn-sm" style="cursor:pointer; text-align:center; margin:0;">Choose photo<input type="file" accept="image/*" id="fPhoto" style="display:none"></label>' +
+              '<button type="button" class="btn btn-text btn-sm" id="btnRemovePhoto" style="padding:4px 0; display:'+(formPhoto?'block':'none')+'">Remove</button>' +
+            '</div>' +
+          '</div>' +
+          '<p class="footnote" style="margin:0">Tip: save your LinkedIn or Instagram profile picture to your phone, then choose it here to match.</p>' +
+        '</label>' +
+
+        '<label class="field"><span class="flabel">Right now you’re… (pick all that apply)</span>' +
           '<div class="chiprow" id="goalChips">' + GOALS.map(function(g){
-            return '<button type="button" class="chip'+(p.goal===g?' selected':'')+'" data-goal="'+escapeHtml(g)+'">'+g+'</button>';
+            return '<button type="button" class="chip'+(goalParts.indexOf(g)>=0?' selected':'')+'" data-goal="'+escapeHtml(g)+'">'+g+'</button>';
           }).join("") + '</div>' +
-          '<input type="text" id="fGoalOther" placeholder="Or describe your own…" value="'+ (p.goal && GOALS.indexOf(p.goal)<0 ? escapeHtml(p.goal) : "") +'" style="margin-top:8px">' +
+          '<input type="text" id="fGoalOther" placeholder="Or describe your own…" value="'+escapeHtml(goalCustom.join(", "))+'" style="margin-top:8px">' +
         '</label>' +
 
         tagField("Professional interests","profTags",p.profTags,"e.g. Communication, ADHD, Marketing") +
@@ -712,8 +752,9 @@
         '<div class="eyebrow" style="color:var(--text-faint)">HOW PEOPLE REACH YOU (OPTIONAL)</div>' +
         field("Email","fEmail","email",p.contact.email,"dana@example.com") +
         field("Phone","fPhone","tel",p.contact.phone,"(555) 555-0100") +
-        field("LinkedIn","fLinkedin","url",p.contact.linkedin,"linkedin.com/in/dana") +
-        field("Instagram or website","fOther","url",p.contact.other,"instagram.com/dana") +
+        fieldPrefixed("LinkedIn","fLinkedin","linkedin.com/in/",stripUrlPrefix(p.contact.linkedin,["linkedin.com/in/","linkedin.com/"]),"dana") +
+        fieldPrefixed("Instagram","fInstagram","instagram.com/",stripUrlPrefix(p.contact.instagram,["instagram.com/"]),"dana") +
+        field("Personal URL","fOther","url",p.contact.other,"yourwebsite.com") +
 
         '<button type="submit" class="btn btn-primary btn-block" style="margin-top:6px">'+(isEdit?"Save badge":"Create my badge")+'</button>' +
       '</form>' +
@@ -727,6 +768,28 @@
     function field(label,id,type,val,ph){
       return '<label class="field"><span class="flabel">'+label+'</span><input type="'+type+'" id="'+id+'" value="'+escapeHtml(val||"")+'" placeholder="'+ph+'"></label>';
     }
+    function fieldPrefixed(label,id,prefix,val,ph){
+      return '<label class="field"><span class="flabel">'+label+'</span>' +
+        '<div class="url-prefix-input"><span class="url-prefix-text">'+escapeHtml(prefix)+'</span>' +
+        '<input type="text" id="'+id+'" value="'+escapeHtml(val||"")+'" placeholder="'+ph+'"></div></label>';
+    }
+  }
+  function stripUrlPrefix(url, fragments){
+    if(!url) return "";
+    var u = String(url).trim().replace(/^https?:\/\//i,"").replace(/^www\./i,"");
+    for(var i=0;i<fragments.length;i++){
+      var f = fragments[i];
+      if(u.toLowerCase().indexOf(f.toLowerCase())===0){ u = u.slice(f.length); break; }
+    }
+    return u.replace(/^\/+|\/+$/g,"");
+  }
+  function buildPrefixedUrl(prefixUrl, id, fragments){
+    var raw = document.getElementById(id).value.trim();
+    if(!raw) return "";
+    var bare = raw.replace(/^https?:\/\//i,"").replace(/^www\./i,"").toLowerCase();
+    var isAlreadyFull = fragments.some(function(f){ return bare.indexOf(f.toLowerCase())===0; });
+    if(isAlreadyFull) return normalizeUrl(raw);
+    return prefixUrl + raw.replace(/^\/+/,"");
   }
 
   function tagField(label, key, tags, ph){
@@ -836,6 +899,7 @@
       if(p.contact.email) contactIcons += '<a class="contact-icon" href="mailto:'+attr(p.contact.email)+'" aria-label="Email">'+ICONS.mail+'</a>';
       if(p.contact.phone) contactIcons += '<a class="contact-icon" href="tel:'+attr(p.contact.phone)+'" aria-label="Call">'+ICONS.phone+'</a>';
       if(p.contact.linkedin) contactIcons += '<a class="contact-icon" href="'+attr(normalizeUrl(p.contact.linkedin))+'" target="_blank" rel="noopener" aria-label="LinkedIn">'+ICONS.link+'</a>';
+      if(p.contact.instagram) contactIcons += '<a class="contact-icon" href="'+attr(normalizeUrl(p.contact.instagram))+'" target="_blank" rel="noopener" aria-label="Instagram">'+ICONS.instagram+'</a>';
       if(p.contact.other) contactIcons += '<a class="contact-icon" href="'+attr(normalizeUrl(p.contact.other))+'" target="_blank" rel="noopener" aria-label="Website">'+ICONS.globe+'</a>';
     }
 
@@ -852,9 +916,11 @@
         '<div class="note-compose-actions"><button class="btn btn-ghost btn-sm" data-cancelnote="'+c.__id+'">Cancel</button><button class="btn btn-primary btn-sm" data-savenote="'+c.__id+'">Save note</button></div>' +
       '</div>';
     } else if(due){
-      noteArea = '<div class="note-due-tag">'+ICONS.pin+' Ready for a note<button class="btn btn-primary btn-sm" style="margin-left:auto" data-addnote="'+c.__id+'">Add note</button></div>';
+      noteArea = '<div class="note-due-tag">'+ICONS.pin+' Ready for a note<button class="btn btn-primary btn-sm" style="margin-left:auto" data-addnote="'+c.__id+'">Add note</button></div>' +
+        '<button type="button" class="btn btn-text btn-sm" data-remind="'+c.__id+'" style="padding:4px 0">'+ICONS.bell+' Remind me to follow up</button>';
     } else {
-      noteArea = '<div class="locked-note">Notes unlock '+Math.ceil(hrsLeft)+'h after you connect — enough time to actually remember the conversation.</div>';
+      noteArea = '<div class="locked-note">Notes unlock '+Math.ceil(hrsLeft)+'h after you connect — enough time to actually remember the conversation.</div>' +
+        '<button type="button" class="btn btn-text btn-sm" data-remind="'+c.__id+'" style="padding:4px 0">'+ICONS.bell+' Remind me to follow up</button>';
     }
 
     var deleteUi = state.deleteArmed === c.__id ?
@@ -886,7 +952,9 @@
         '<div class="display">CONNECTED</div>' +
         '<div class="whomet">'+escapeHtml(p.name)+'</div>' +
         '<p>You’re connected on NicePeople now. If they haven’t scanned your badge yet, show it to them to complete the loop.</p>' +
-        '<button class="btn btn-primary btn-block" id="btnCloseOverlay" style="margin-top:18px">See connections</button>' +
+        '<button class="btn btn-ghost btn-block" id="btnRemindOverlay" style="margin-top:14px">'+ICONS.bell+' Remind me to follow up</button>' +
+        '<p class="footnote" id="overlayReminderStatus" style="min-height:14px; text-align:center"></p>' +
+        '<button class="btn btn-primary btn-block" id="btnCloseOverlay" style="margin-top:4px">See connections</button>' +
       '</div>' +
     '</div>';
   }
@@ -1108,6 +1176,77 @@
     });
   }
 
+  /* ---------------- follow-up calendar reminder (.ics) ---------------- */
+  function icsDate(d){
+    function pad(n){ return (n<10?"0":"")+n; }
+    return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+"T"+pad(d.getUTCHours())+pad(d.getUTCMinutes())+pad(d.getUTCSeconds())+"Z";
+  }
+  function icsEscape(s){
+    return String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
+  }
+  function buildFollowUpIcs(c){
+    var p = c.profile;
+    var now = new Date();
+    var start1 = new Date(c.connectedAt + NOTE_WAIT_HOURS*3600000);
+    var start2 = new Date(c.connectedAt + (NOTE_WAIT_HOURS+12)*3600000);
+    function vevent(uid, start, title, desc){
+      var end = new Date(start.getTime()+15*60000);
+      return [
+        "BEGIN:VEVENT",
+        "UID:"+uid+"@nicepeople.app",
+        "DTSTAMP:"+icsDate(now),
+        "DTSTART:"+icsDate(start),
+        "DTEND:"+icsDate(end),
+        "SUMMARY:"+icsEscape(title),
+        "DESCRIPTION:"+icsEscape(desc),
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:"+icsEscape(title),
+        "TRIGGER:PT0M",
+        "END:VALARM",
+        "END:VEVENT"
+      ].join("\r\n");
+    }
+    var lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//NicePeople//Follow Up//EN",
+      "CALSCALE:GREGORIAN",
+      vevent(
+        (c.__id||uid("r"))+"-1", start1,
+        "Follow up with "+p.name,
+        "2nd of the 3 Ups of Networking: Show up, Follow up, Catch up. Open NicePeople and jot a private note about "+p.name+" so you remember the conversation."
+      ),
+      vevent(
+        (c.__id||uid("r"))+"-2", start2,
+        "Still need to follow up with "+p.name+"?",
+        "Backup nudge from NicePeople — if you haven't jotted your note about "+p.name+" yet, now's the time."
+      ),
+      "END:VCALENDAR"
+    ];
+    return lines.join("\r\n")+"\r\n";
+  }
+  function downloadFollowUpReminder(c, statusId){
+    if(statusId) setStatus(statusId, "Preparing your reminder…", false);
+    var ics = buildFollowUpIcs(c);
+    var blob = new Blob([ics], { type:"text/calendar;charset=utf-8" });
+    var filename = "follow-up-"+slugify(c.profile.name)+".ics";
+    getDownloads().then(function(downloads){
+      if(downloads){
+        downloads.save({ filename:filename, data:blob }).then(function(){
+          if(statusId) setStatus(statusId, "Reminder saved.", false);
+        }).catch(function(err){
+          if(err && err.code === "declined"){ if(statusId) setStatus(statusId,"",false); return; }
+          var ok = browserDownload(filename, blob);
+          if(statusId) setStatus(statusId, ok ? "Reminder saved — add it to your calendar." : "Couldn’t create that — try again.", !ok);
+        });
+      } else {
+        var ok = browserDownload(filename, blob);
+        if(statusId) setStatus(statusId, ok ? "Reminder saved — add it to your calendar." : "Couldn’t create that — try again.", !ok);
+      }
+    });
+  }
+
   /* ---------------- connections CSV export ---------------- */
   function csvEscape(v){
     v = String(v==null?"":v);
@@ -1115,13 +1254,13 @@
     return v;
   }
   function buildConnectionsCsv(){
-    var header = ["Name","Headline","Goal","Professional interests","Personal interests","Email","Phone","LinkedIn","Other link","Met at","Note"];
+    var header = ["Name","Headline","Goal","Professional interests","Personal interests","Email","Phone","LinkedIn","Instagram","Personal URL","Met at","Note"];
     var rows = state.connections.slice().sort(function(a,b){ return b.connectedAt - a.connectedAt; }).map(function(c){
       var p = c.profile;
       return [
         p.name, p.headline, p.goal,
         (p.profTags||[]).join("; "), (p.persTags||[]).join("; "),
-        p.contact&&p.contact.email, p.contact&&p.contact.phone, p.contact&&p.contact.linkedin, p.contact&&p.contact.other,
+        p.contact&&p.contact.email, p.contact&&p.contact.phone, p.contact&&p.contact.linkedin, p.contact&&p.contact.instagram, p.contact&&p.contact.other,
         new Date(c.connectedAt).toLocaleString(), c.notes
       ].map(csvEscape).join(",");
     });
@@ -1289,13 +1428,28 @@
     if(form) form.onsubmit = function(e){ e.preventDefault(); submitProfileForm(); };
 
     document.querySelectorAll("#goalChips .chip").forEach(function(ch){
-      ch.onclick = function(){
-        var g = ch.getAttribute("data-goal");
-        var cur = ch.classList.contains("selected");
-        document.querySelectorAll("#goalChips .chip").forEach(function(x){ x.classList.remove("selected"); });
-        if(!cur){ ch.classList.add("selected"); document.getElementById("fGoalOther").value=""; }
-      };
+      ch.onclick = function(){ ch.classList.toggle("selected"); };
     });
+
+    var fPhotoInput = document.getElementById("fPhoto");
+    if(fPhotoInput) fPhotoInput.onchange = function(){
+      var file = fPhotoInput.files && fPhotoInput.files[0];
+      if(!file) return;
+      readAndResizePhoto(file).then(function(dataUrl){
+        formPhoto = dataUrl;
+        var prev = document.getElementById("photoPreview");
+        if(prev){ prev.style.backgroundImage = "url("+dataUrl+")"; prev.textContent = ""; }
+        var rm = document.getElementById("btnRemovePhoto");
+        if(rm) rm.style.display = "block";
+      });
+    };
+    var btnRemovePhoto = document.getElementById("btnRemovePhoto");
+    if(btnRemovePhoto) btnRemovePhoto.onclick = function(){
+      formPhoto = "";
+      var prev = document.getElementById("photoPreview");
+      if(prev){ prev.style.backgroundImage = "none"; prev.textContent = initials(document.getElementById("fName").value || "?"); }
+      btnRemovePhoto.style.display = "none";
+    };
 
     ["profTags","persTags"].forEach(function(key){
       var btn = document.querySelector('[data-addtag="'+key+'"]');
@@ -1350,6 +1504,13 @@
         state.composingNote = null; render();
       };
     });
+    document.querySelectorAll("[data-remind]").forEach(function(b){
+      b.onclick = function(){
+        var id = b.getAttribute("data-remind");
+        var c = findConnById(id);
+        if(c) downloadFollowUpReminder(c);
+      };
+    });
     document.querySelectorAll("[data-delete]").forEach(function(b){
       b.onclick = function(){ state.deleteArmed = b.getAttribute("data-delete"); render(); };
     });
@@ -1367,6 +1528,12 @@
 
     var btnCloseOverlay = document.getElementById("btnCloseOverlay");
     if(btnCloseOverlay) btnCloseOverlay.onclick = function(){ state.justConnected = null; render(); };
+    var btnRemindOverlay = document.getElementById("btnRemindOverlay");
+    if(btnRemindOverlay) btnRemindOverlay.onclick = function(){
+      var p = state.justConnected;
+      var c = p && state.connections.find(function(x){ return x.profile.id === p.id; });
+      if(c) downloadFollowUpReminder(c, "overlayReminderStatus");
+    };
 
     var btnFullOnboard = document.getElementById("btnFullOnboard");
     if(btnFullOnboard) btnFullOnboard.onclick = function(){ state.quickCaptureExpanded = true; render(); };
@@ -1387,6 +1554,29 @@
   function findConnById(id){ return state.connections.filter(function(c){ return c.__id===id; })[0]; }
 
   var formTags = { profTags:[], persTags:[] };
+  var formPhoto = "";
+  var MAX_PHOTO_DIM = 320;
+  function readAndResizePhoto(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function(){
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function(){
+          var scale = Math.min(1, MAX_PHOTO_DIM / Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width*scale)), h = Math.max(1, Math.round(img.height*scale));
+          var canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          try{ resolve(canvas.toDataURL("image/jpeg", 0.85)); }
+          catch(e){ resolve(reader.result); }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
   function formTagState(key){ return formTags[key]; }
   function addTagToForm(key, v){
     if(formTags[key].length >= 8) return;
@@ -1411,20 +1601,24 @@
   function submitProfileForm(){
     var name = document.getElementById("fName").value.trim();
     if(!name) return;
-    var goalBtn = document.querySelector("#goalChips .chip.selected");
+    var goalChipVals = Array.prototype.slice.call(document.querySelectorAll("#goalChips .chip.selected"))
+      .map(function(ch){ return ch.getAttribute("data-goal"); });
     var goalOther = document.getElementById("fGoalOther").value.trim();
-    var goal = goalOther || (goalBtn ? goalBtn.getAttribute("data-goal") : "");
+    if(goalOther) goalChipVals.push(goalOther);
+    var goal = goalChipVals.join(", ");
 
     var profile = state.editing && state.me ? Object.assign({}, state.me) : { id: uid("u") };
     profile.name = name;
     profile.headline = document.getElementById("fHeadline").value.trim();
     profile.goal = goal;
+    profile.photo = formPhoto || "";
     profile.profTags = formTags.profTags.slice();
     profile.persTags = formTags.persTags.slice();
     profile.contact = {
       email: document.getElementById("fEmail").value.trim(),
       phone: document.getElementById("fPhone").value.trim(),
-      linkedin: document.getElementById("fLinkedin").value.trim(),
+      linkedin: buildPrefixedUrl("https://linkedin.com/in/","fLinkedin",["linkedin.com/in/","linkedin.com/"]),
+      instagram: buildPrefixedUrl("https://instagram.com/","fInstagram",["instagram.com/"]),
       other: document.getElementById("fOther").value.trim()
     };
 
@@ -1432,6 +1626,7 @@
     saveMe(profile);
     state.editing = false;
     formTags = { profTags:[], persTags:[] };
+    formPhoto = "";
 
     if(state.pending){
       var pending = state.pending;
@@ -1473,3 +1668,5 @@
   boot();
 })();
 </script>
+
+</body></html>
