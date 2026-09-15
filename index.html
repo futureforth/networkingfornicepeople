@@ -6,6 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="NicePeople">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <style>
   @font-face {
     font-family:'Fengardo Neue Black';
@@ -531,7 +534,19 @@
   }
   function backupUrl(profile){
     var base = location.origin + location.pathname;
-    return base + "?restore=" + encodeProfile(profile, true);
+    // Deliberately excludes the photo: a photo data URL is tens of thousands of
+    // characters, which makes the link too long for some browsers/mail apps/CDNs
+    // to load reliably (it can hang instead of erroring). The full badge including
+    // the photo is available via the backup FILE download instead (backupFileBlob).
+    return base + "?restore=" + encodeProfile(profile, false);
+  }
+  function backupFileBlob(profile){
+    var payload = JSON.stringify({ app:"nicepeople-backup", v:1, data: encodeProfile(profile, true) });
+    return new Blob([payload], { type:"application/json" });
+  }
+  function backupFileName(profile){
+    var slug = (profile.name||"badge").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "badge";
+    return "nicepeople-backup-" + slug + ".json";
   }
 
   function fmtWhen(ts){
@@ -695,7 +710,7 @@
   }
   function backupMailtoHref(link){
     var body = [
-      "Save this email — it restores your exact NicePeople badge (photo included) on any device or browser.",
+      "Save this email — it restores your NicePeople badge (name, headline, goals, interests, and contact info) on any device or browser. It won’t bring back your photo — snap a new one after restoring, or use the backup FILE in Settings instead of this link if you want the photo included too.",
       "",
       "Especially worth doing if you made your badge in a private/incognito tab, or a browser that clears data automatically (like DuckDuckGo) — that browser won’t remember it for you.",
       "",
@@ -798,7 +813,7 @@
           '<p class="footnote" style="margin:0">Shown to people you connect with — update this each time you head to a new event.</p>' +
         '</label>' +
 
-        tagField("Professional interests","profTags",p.profTags,"e.g. Design, Ethical AI, Marketing, Dev") +
+        tagField("Professional interests","profTags",p.profTags,"e.g. Communication, ADHD, Marketing") +
         tagField("Personal interests","persTags",p.persTags,"e.g. Improv, Hiking, Vinyl") +
 
         '<div style="height:1px;background:var(--hairline)"></div>' +
@@ -1039,6 +1054,7 @@
         '<a class="btn btn-ghost btn-block" id="btnEmailBackup" href="'+attr(backupMailtoHref(link))+'" style="margin-top:8px">'+ICONS.mail+' Email myself a backup link</a>' +
         '<button type="button" class="btn btn-text btn-sm" id="btnCopyBackupOverlay" style="margin-top:6px">Copy backup link instead</button>' +
         '<span id="badgeSavedCopyStatus" class="mono" style="font-size:11.5px; color:var(--stamp); display:none; margin-top:4px;">Copied — paste it in Notes or a text to yourself.</span>' +
+        '<p class="footnote" style="margin-top:8px">That link skips your photo to keep it short and reliable. For a full backup with the photo included, use Settings → Back up your badge → Download backup file.</p>' +
         '<p class="footnote" style="margin-top:12px">Tip: add NicePeople to your Home Screen (Settings → “Add to home screen”) so it’s always one tap away.</p>' +
         '<button class="btn btn-primary btn-block" id="btnCloseBadgeSaved" style="margin-top:10px">Got it</button>' +
       '</div>' +
@@ -1049,7 +1065,7 @@
     var backupSection = state.me ? (
       '<div class="sheet-section">' +
         '<div class="flabel" style="margin-bottom:6px">BACK UP YOUR BADGE</div>' +
-        '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0 0 8px">Your badge and connections live only in this browser. Get a personal link that restores your exact badge — photo included — on any device.</p>' +
+        '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0 0 8px">Your badge and connections live only in this browser. Get a personal link that restores your info (not your photo — that keeps the link short enough to actually work), or download a backup file that keeps everything, photo included.</p>' +
         (state.backupOpen ?
           '<div style="background:var(--surface-2); border:1px solid var(--hairline); border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:9px;">' +
             '<div class="mono" style="font-size:11px; color:var(--text-faint); word-break:break-all; line-height:1.5;">'+escapeHtml(backupUrl(state.me))+'</div>' +
@@ -1058,6 +1074,9 @@
           '</div>' :
           '<button class="btn btn-ghost btn-block" id="btnShowBackup">Get my backup link</button>'
         ) +
+        '<button class="btn btn-ghost btn-block" id="btnDownloadBackupFile" style="margin-top:8px">Download backup file (includes photo)</button>' +
+        '<label class="btn btn-text btn-sm" style="cursor:pointer; text-align:center; display:block; margin-top:6px;">Restore from a backup file<input type="file" accept="application/json,.json" id="fRestoreFile" style="display:none"></label>' +
+        '<span id="restoreFileStatus" class="mono" style="font-size:11.5px; color:var(--danger); display:none; margin-top:2px;"></span>' +
       '</div>'
     ) : "";
 
@@ -1667,6 +1686,28 @@
         navigator.clipboard.writeText(link).then(shown).catch(function(){ legacyCopy(link, shown); });
       } else { legacyCopy(link, shown); }
     };
+    var btnDownloadBackupFile = document.getElementById("btnDownloadBackupFile");
+    if(btnDownloadBackupFile) btnDownloadBackupFile.onclick = function(){
+      browserDownload(backupFileName(state.me), backupFileBlob(state.me));
+    };
+    var fRestoreFile = document.getElementById("fRestoreFile");
+    if(fRestoreFile) fRestoreFile.onchange = function(){
+      var file = fRestoreFile.files && fRestoreFile.files[0];
+      fRestoreFile.value = "";
+      if(!file) return;
+      var statusEl = document.getElementById("restoreFileStatus");
+      function showError(msg){ if(statusEl){ statusEl.textContent = msg; statusEl.style.display = "block"; } }
+      var reader = new FileReader();
+      reader.onerror = function(){ showError("Couldn’t read that file."); };
+      reader.onload = function(){
+        var parsed;
+        try{ parsed = JSON.parse(reader.result); }catch(e){ parsed = null; }
+        if(!parsed || !parsed.data){ showError("That doesn’t look like a NicePeople backup file."); return; }
+        closeSheet();
+        processRestorePayload(parsed.data);
+      };
+      reader.readAsText(file);
+    };
     var btnShowA2hsHelp = document.getElementById("btnShowA2hsHelp");
     if(btnShowA2hsHelp) btnShowA2hsHelp.onclick = function(){ state.a2hsHelpOpen = true; render(); };
     var btnA2hsDismiss = document.getElementById("btnA2hsDismiss");
@@ -1980,6 +2021,14 @@
       formTags = { profTags:(state.me.profTags||[]).slice(), persTags:(state.me.persTags||[]).slice() };
     }
   }, true);
+
+  // register the service worker for install + offline app-shell caching;
+  // fails silently where sw.js isn't served alongside index.html (e.g. some preview contexts)
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
 
   boot();
 })();
