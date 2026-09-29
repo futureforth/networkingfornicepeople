@@ -430,6 +430,8 @@
   .sheet-title{font-family:'Fengardo Neue Black',sans-serif; font-weight:800; font-size:20px;}
   .sheet-section{border-top:1px solid var(--hairline); padding-top:14px;}
   .footnote{color:var(--text-faint); font-size:11.5px; text-align:center; line-height:1.5; margin-top:6px;}
+  @keyframes statusPulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .status-pulse{ animation:statusPulse 1s ease-in-out infinite; }
   .app-footer{color:var(--text-faint); font-size:11px; text-align:center; line-height:1.5; margin-top:22px; padding-top:2px;}
   .app-footer a{color:var(--text-muted); text-decoration:underline; text-underline-offset:2px;}
   .app-footer a:hover{color:var(--text);}
@@ -1205,6 +1207,11 @@
     el.textContent = msg;
     el.style.color = isError ? "var(--danger)" : "var(--stamp)";
   }
+  function setPulsing(id, on){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.classList[on ? "add" : "remove"]("status-pulse");
+  }
 
   /* ---------------- badge PNG export ---------------- */
   function loadImage(src){
@@ -1376,6 +1383,7 @@
   function saveIcsFile(filename, icsText, statusId, savedMsg){
     var blob = new Blob([icsText], { type:"text/calendar;charset=utf-8" });
     function plainDownload(){
+      if(statusId) setPulsing(statusId, false);
       var ok = browserDownload(filename, blob);
       if(statusId) setStatus(statusId, ok ? "Saved as a calendar file (.ics) — open it from Downloads to add this reminder to your calendar app." : "Couldn’t create that — try again.", !ok);
     }
@@ -1384,7 +1392,20 @@
         var url = URL.createObjectURL(blob);
         window.location.href = url;
         setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-        if(statusId) setStatus(statusId, "Opening in Calendar…", false);
+        // There's no way to detect from here whether iOS actually opened its
+        // native "Add to Calendar" screen (real Safari) or just started a
+        // file download instead (in-app browsers like Spark/Gmail, and some
+        // iOS versions even in Safari) — that happens entirely outside the
+        // page. So: show a brief working state rather than claim a specific
+        // outcome, then land on wording that's accurate either way.
+        if(statusId){
+          setStatus(statusId, "Preparing your calendar reminder…", false);
+          setPulsing(statusId, true);
+          setTimeout(function(){
+            setPulsing(statusId, false);
+            setStatus(statusId, "Ready — if your calendar app didn’t open on its own, check Downloads and tap the file to add the reminder.", false);
+          }, 1000);
+        }
       }catch(e){ plainDownload(); }
     }
     getDownloads().then(function(downloads){
