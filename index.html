@@ -532,6 +532,14 @@
     var base = location.origin + location.pathname;
     return base + "?c=" + encodeProfile(profile);
   }
+  // Used specifically for the "email/copy myself a reminder" paths in Quick
+  // Capture: marks the link so that when the person comes back through it —
+  // rather than scanning a fresh badge — boot() sends them straight into the
+  // badge-completion form instead of showing the Quick Capture screen (with
+  // its own "email myself a reminder" CTA) a second, confusing time.
+  function reminderUrl(profile){
+    return connectUrl(profile) + "&r=1";
+  }
   function backupUrl(profile){
     var base = location.origin + location.pathname;
     // Deliberately excludes the photo: a photo data URL is tens of thousands of
@@ -746,7 +754,7 @@
 
   function renderQuickCapture(){
     var p = state.pending;
-    var link = connectUrl(p);
+    var link = reminderUrl(p);
     var interests = (p.profTags||[]).concat(p.persTags||[]);
 
     var contactIcons = "";
@@ -786,8 +794,7 @@
     formPhoto = p.photo || "";
     var goalParts = (p.goal||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
     var goalCustom = goalParts.filter(function(g){ return GOALS.indexOf(g) < 0; });
-    var pendingNote = (!isEdit && state.pending) ?
-      '<div class="due-banner" style="margin-bottom:4px"><span>'+ICONS.pin+'</span><span><strong>'+escapeHtml(state.pending.name)+'</strong> shared their badge with you. Make your own to connect back.</span></div>' : "";
+    var returning = !isEdit && !!state.pending;
 
     return '' +
     '<div style="padding:22px 20px 60px; display:flex; flex-direction:column; gap:22px;">' +
@@ -797,11 +804,15 @@
         :
         '<div class="intro-hero">' +
           '<div class="wordmark" style="margin-bottom:16px"><img src="'+MASCOT_ICON+'" alt="" class="wordmark-mascot"/><span class="display" style="font-size:22px">NICE PEOPLE</span><span class="mono tag">SKIP THE FEED</span></div>' +
-          '<div class="display">MAKE<br>YOUR<br>BADGE.</div>' +
-          '<p>No feed, no followers, no algorithm deciding who you see. Show your badge, scan theirs, and you\'re connected — instantly, both ways.</p>' +
+          (returning ?
+            '<div class="display">COMPLETE<br>YOUR<br>BADGE.</div>' +
+            '<p><strong>'+escapeHtml(state.pending.name)+'</strong> shared their badge with you. Finish yours now to lock in the connection and turn on your follow-up reminder.</p>'
+          :
+            '<div class="display">MAKE<br>YOUR<br>BADGE.</div>' +
+            '<p>No feed, no followers, no algorithm deciding who you see. Show your badge, scan theirs, and you\'re connected — instantly, both ways.</p>'
+          ) +
         '</div>'
       ) +
-      pendingNote +
       (!isEdit ? '<div class="intro-list">' +
         row("1","Fill out your badge","name, what you do, what you’re into") +
         row("2","Show it at the event","a QR code is your badge — no printing, no app store") +
@@ -847,7 +858,7 @@
         fieldPrefixed("Instagram","fInstagram","instagram.com/",stripUrlPrefix(p.contact.instagram,["instagram.com/"]),"dana") +
         field("Personal URL","fOther","url",p.contact.other,"yourwebsite.com") +
 
-        '<button type="submit" class="btn btn-primary btn-block" style="margin-top:6px">'+(isEdit?"Save badge":"Create my badge")+'</button>' +
+        '<button type="submit" class="btn btn-primary btn-block" style="margin-top:6px">'+(isEdit?"Save badge":(returning?"Complete my badge":"Create my badge"))+'</button>' +
       '</form>' +
       '<p class="footnote">Your badge lives on this device only — nothing is uploaded to a server. That’s the whole point.</p>' +
       renderFooter() +
@@ -1922,7 +1933,7 @@
     if(btnFullOnboard) btnFullOnboard.onclick = function(){ state.quickCaptureExpanded = true; render(); };
     var btnCopyLink = document.getElementById("btnCopyLink");
     if(btnCopyLink) btnCopyLink.onclick = function(){
-      var link = connectUrl(state.pending);
+      var link = reminderUrl(state.pending);
       function shown(){ var s = document.getElementById("copyStatus"); if(s) s.style.display = "block"; }
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(link).then(shown).catch(function(){ legacyCopy(link, shown); });
@@ -2034,6 +2045,7 @@
     var params = new URLSearchParams(location.search);
     var cParam = params.get("c");
     var restoreParam = params.get("restore");
+    var viaReminder = params.get("r") === "1";
     if(cParam || restoreParam){
       history.replaceState(null, "", location.origin + location.pathname);
     }
@@ -2043,7 +2055,13 @@
       var decoded = decodeProfile(cParam);
       if(decoded && (!state.me || decoded.id !== state.me.id)){
         if(state.me){ processConnectPayload(cParam); }
-        else { state.pending = decoded; }
+        else {
+          state.pending = decoded;
+          // Coming back through an "email/copy myself a reminder" link — skip
+          // straight to the badge-completion form instead of re-showing the
+          // same Quick Capture screen they already chose that option from.
+          if(viaReminder) state.quickCaptureExpanded = true;
+        }
       }
     }
     if(state.me) maybeSeed();
