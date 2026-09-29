@@ -186,6 +186,7 @@
     cursor:pointer;
   }
   .chip.selected{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+  a.chip{text-decoration:none; display:inline-flex; align-items:center;}
   .chip.tag{background:var(--surface-3); color:var(--text); cursor:default; border-color:transparent;}
   .chip.tag.remove{cursor:pointer;}
   .chip.tag .x{margin-left:6px; opacity:0.6;}
@@ -997,6 +998,20 @@
   function isDue(c){ return !c.notes && hoursSince(c.connectedAt) >= NOTE_WAIT_HOURS; }
   function isCatchUpReady(c){ return hoursSince(c.connectedAt) >= CATCHUP_WAIT_HOURS; }
 
+  // idPrefix keeps status-span ids unique when this same connection's remind
+  // UI could appear twice in the DOM at once — e.g. the "just connected"
+  // overlay sits on top of a Connections list that may already show a card
+  // for this same person underneath it.
+  function remindUi(c, idPrefix){
+    idPrefix = idPrefix || "";
+    var statusId = idPrefix+"remindStatus_"+c.__id;
+    return '<div class="footnote" style="margin:8px 0 0; text-align:left;">'+ICONS.bell+' Add a follow-up reminder:</div>' +
+      calendarChipsHtml(followUpEventFields(c),
+        '<button type="button" class="chip" data-remind="'+c.__id+'" data-remindstatus="'+statusId+'">Apple / .ics</button>'
+      ) +
+      '<span class="footnote" id="'+statusId+'" style="min-height:14px; display:block; margin-top:4px;"></span>';
+  }
+
   function renderConnCard(c){
     var p = c.profile;
     var due = isDue(c);
@@ -1026,12 +1041,10 @@
       '</div>';
     } else if(due){
       noteArea = '<div class="note-due-tag">'+ICONS.pin+' Ready for a note<button class="btn btn-primary btn-sm" style="margin-left:auto" data-addnote="'+c.__id+'">Add note</button></div>' +
-        '<button type="button" class="btn btn-text btn-sm" data-remind="'+c.__id+'" style="padding:4px 0">'+ICONS.bell+' Remind me to follow up</button>' +
-        '<span class="footnote" id="remindStatus_'+c.__id+'" style="min-height:14px; display:block; margin-top:2px;"></span>';
+        remindUi(c);
     } else {
       noteArea = '<div class="locked-note">Notes unlock '+Math.ceil(hrsLeft)+'h after you connect — enough time to actually remember the conversation.</div>' +
-        '<button type="button" class="btn btn-text btn-sm" data-remind="'+c.__id+'" style="padding:4px 0">'+ICONS.bell+' Remind me to follow up</button>' +
-        '<span class="footnote" id="remindStatus_'+c.__id+'" style="min-height:14px; display:block; margin-top:2px;"></span>';
+        remindUi(c);
     }
 
     var deleteUi = state.deleteArmed === c.__id ?
@@ -1039,11 +1052,16 @@
 
     var catchUpUi = isCatchUpReady(c) ?
       '<div class="catchup-block">' +
-        '<div class="footnote" style="margin:0 0 6px">'+ICONS.bell+' 3rd of the 3 Ups — ready to catch up? Schedule a check-in call:</div>' +
+        '<div class="footnote" style="margin:0 0 6px">'+ICONS.bell+' 3rd of the 3 Ups — ready to catch up? Pick when:</div>' +
         '<div class="chiprow">' + CATCHUP_DAY_OPTIONS.map(function(d){
           return '<button type="button" class="chip'+(c.catchUpDays===d?' selected':'')+'" data-catchup="'+c.__id+'" data-catchupdays="'+d+'">'+d+' days</button>';
         }).join("") + '</div>' +
-        (c.catchUpScheduledAt ? '<div class="footnote" style="margin-top:6px">Catch-up reminder set for '+new Date(c.catchUpScheduledAt).toLocaleDateString()+'.</div>' : '') +
+        (c.catchUpDays ?
+          '<div class="footnote" style="margin:8px 0 0; text-align:left;">Add it to your calendar:</div>' +
+          calendarChipsHtml(catchUpEventFields(c, c.catchUpDays),
+            '<button type="button" class="chip" data-catchupics="'+c.__id+'" data-catchupicsdays="'+c.catchUpDays+'">Apple / .ics</button>'
+          )
+        : '') +
         '<span class="footnote" id="catchupStatus_'+c.__id+'" style="min-height:14px; display:block; margin-top:4px;"></span>' +
       '</div>' : "";
 
@@ -1068,15 +1086,15 @@
   /* ---------------- overlays ---------------- */
   function renderConnectedOverlay(){
     var p = state.justConnected;
+    var c = state.connections.find(function(x){ return x.profile.id === p.id; });
     return '<div class="overlay" id="connOverlay">' +
       '<div class="stamp-card">' +
         '<div class="stamp-seal"><img src="'+MASCOT_ICON+'" alt="" style="width:44px;height:44px;object-fit:contain;"/></div>' +
         '<div class="display">CONNECTED</div>' +
         '<div class="whomet">'+escapeHtml(p.name)+'</div>' +
         '<p>You’re connected on NicePeople now. If they haven’t scanned your badge yet, show it to them to complete the loop.</p>' +
-        '<button class="btn btn-ghost btn-block" id="btnRemindOverlay" style="margin-top:14px">'+ICONS.bell+' Remind me to follow up</button>' +
-        '<p class="footnote" id="overlayReminderStatus" style="min-height:14px; text-align:center"></p>' +
-        '<button class="btn btn-primary btn-block" id="btnCloseOverlay" style="margin-top:4px">See connections</button>' +
+        (c ? '<div style="margin-top:14px">'+remindUi(c, "overlay")+'</div>' : '') +
+        '<button class="btn btn-primary btn-block" id="btnCloseOverlay" style="margin-top:14px">See connections</button>' +
       '</div>' +
     '</div>';
   }
@@ -1368,45 +1386,22 @@
     }catch(e){ return false; }
   }
 
-  function isIOS(){
-    return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  }
-
-  // iOS Safari has a built-in "Add to Calendar" screen it shows automatically
-  // when you *navigate* to a text/calendar resource — but only when the link
-  // isn't marked for forced download. Forcing a download (the `download`
-  // attribute, used for every other file type in this app) instead dumps the
-  // person into the generic "Save to Files" sheet, with nothing to say it's
-  // a calendar invite rather than a random file. So .ics files get their own
-  // path here: try the native calendar hand-off first on iOS, and only fall
-  // back to a plain, clearly-labeled file download otherwise.
+  // Tried a "navigate straight to the .ics blob and hope iOS shows its
+  // native Add to Calendar screen" trick here before. In real testing it
+  // never actually produced that screen — including in Safari itself on
+  // recent iOS — and in an in-app browser (Mail apps, Spark, etc.) it made
+  // things worse: blob URLs carry no filename, so the download that resulted
+  // showed up as "Unknown.ics" instead of something recognizable. There's no
+  // reliable, feature-detectable way to hand a file straight to the native
+  // Calendar app from a web page, in any browser. So: always do a plain,
+  // correctly-named file download, and give people an actual alternative
+  // that doesn't depend on any of that — direct "add to Google/Outlook"
+  // links, which are just normal web pages, not a download at all.
   function saveIcsFile(filename, icsText, statusId, savedMsg){
     var blob = new Blob([icsText], { type:"text/calendar;charset=utf-8" });
-    function plainDownload(){
-      if(statusId) setPulsing(statusId, false);
+    function fallback(){
       var ok = browserDownload(filename, blob);
-      if(statusId) setStatus(statusId, ok ? "Saved as a calendar file (.ics) — open it from Downloads to add this reminder to your calendar app." : "Couldn’t create that — try again.", !ok);
-    }
-    function iosHandoff(){
-      try{
-        var url = URL.createObjectURL(blob);
-        window.location.href = url;
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-        // There's no way to detect from here whether iOS actually opened its
-        // native "Add to Calendar" screen (real Safari) or just started a
-        // file download instead (in-app browsers like Spark/Gmail, and some
-        // iOS versions even in Safari) — that happens entirely outside the
-        // page. So: show a brief working state rather than claim a specific
-        // outcome, then land on wording that's accurate either way.
-        if(statusId){
-          setStatus(statusId, "Preparing your calendar reminder…", false);
-          setPulsing(statusId, true);
-          setTimeout(function(){
-            setPulsing(statusId, false);
-            setStatus(statusId, "Ready — if your calendar app didn’t open on its own, check Downloads and tap the file to add the reminder.", false);
-          }, 1000);
-        }
-      }catch(e){ plainDownload(); }
+      if(statusId) setStatus(statusId, ok ? "Downloaded "+filename+" — open it from Downloads (or the Files app) to add it to Apple Calendar or another calendar app." : "Couldn’t create that — try again.", !ok);
     }
     getDownloads().then(function(downloads){
       if(downloads){
@@ -1414,14 +1409,39 @@
           if(statusId) setStatus(statusId, savedMsg, false);
         }).catch(function(err){
           if(err && err.code === "declined"){ if(statusId) setStatus(statusId,"",false); return; }
-          if(isIOS()) iosHandoff(); else plainDownload();
+          fallback();
         });
-      } else if(isIOS()){
-        iosHandoff();
-      } else {
-        plainDownload();
-      }
+      } else { fallback(); }
     });
+  }
+
+  // Quick-add links for the two calendars most people already use — these
+  // are ordinary https URLs that open the provider's own "create event" page
+  // pre-filled, so there's no file, no download, and no ambiguity about
+  // what happens when you tap them.
+  function gcalUrl(f){
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+      "&text=" + encodeURIComponent(f.title) +
+      "&dates=" + icsDate(f.start) + "/" + icsDate(f.end) +
+      "&details=" + encodeURIComponent(f.desc);
+  }
+  function outlookUrl(f){
+    return "https://outlook.live.com/calendar/0/deeplink/compose?path=%2Fcalendar%2Faction%2Fcompose&rru=addevent" +
+      "&subject=" + encodeURIComponent(f.title) +
+      "&startdt=" + encodeURIComponent(f.start.toISOString()) +
+      "&enddt=" + encodeURIComponent(f.end.toISOString()) +
+      "&body=" + encodeURIComponent(f.desc);
+  }
+  // Three clearly-labeled ways to add one event: Google and Outlook are
+  // plain links (most reliable — no file involved), the third is whatever
+  // `icsButtonHtml` the caller wants for the "download an .ics" fallback
+  // used by Apple Calendar and anything else.
+  function calendarChipsHtml(f, icsButtonHtml){
+    return '<div class="chiprow" style="margin-top:6px">' +
+      '<a class="chip" href="'+attr(gcalUrl(f))+'" target="_blank" rel="noopener">Google Calendar</a>' +
+      '<a class="chip" href="'+attr(outlookUrl(f))+'" target="_blank" rel="noopener">Outlook</a>' +
+      icsButtonHtml +
+    '</div>';
   }
 
   function saveBadgeImage(){
@@ -1455,13 +1475,35 @@
   function icsEscape(s){
     return String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
   }
+  // Fields for the primary follow-up event (fires NOTE_WAIT_HOURS after
+  // connecting). Shared by the .ics builder below and the Google/Outlook
+  // quick-add links — one source of truth for what the reminder says.
+  function followUpEventFields(c){
+    var p = c.profile;
+    var start = new Date(c.connectedAt + NOTE_WAIT_HOURS*3600000);
+    return {
+      title: "Follow up with "+p.name,
+      desc: "2nd of the 3 Ups of Networking: Show up, Follow up, Catch up. Open NicePeople and jot a private note about "+p.name+" so you remember the conversation.",
+      start: start,
+      end: new Date(start.getTime()+15*60000)
+    };
+  }
+  function catchUpEventFields(c, days){
+    var p = c.profile;
+    var start = new Date(Date.now() + days*24*3600000);
+    return {
+      title: "Catch up with "+p.name,
+      desc: "3rd of the 3 Ups of Networking: Show up, Follow up, Catch up. It's been "+days+" days since you followed up with "+p.name+" — reach out and schedule a quick catch-up call.",
+      start: start,
+      end: new Date(start.getTime()+20*60000)
+    };
+  }
   function buildFollowUpIcs(c){
     var p = c.profile;
     var now = new Date();
-    var start1 = new Date(c.connectedAt + NOTE_WAIT_HOURS*3600000);
+    var f1 = followUpEventFields(c);
     var start2 = new Date(c.connectedAt + (NOTE_WAIT_HOURS+12)*3600000);
-    function vevent(uid, start, title, desc){
-      var end = new Date(start.getTime()+15*60000);
+    function vevent(uid, start, end, title, desc){
       return [
         "BEGIN:VEVENT",
         "UID:"+uid+"@nicepeople.app",
@@ -1483,13 +1525,9 @@
       "VERSION:2.0",
       "PRODID:-//NicePeople//Follow Up//EN",
       "CALSCALE:GREGORIAN",
+      vevent((c.__id||uid("r"))+"-1", f1.start, f1.end, f1.title, f1.desc),
       vevent(
-        (c.__id||uid("r"))+"-1", start1,
-        "Follow up with "+p.name,
-        "2nd of the 3 Ups of Networking: Show up, Follow up, Catch up. Open NicePeople and jot a private note about "+p.name+" so you remember the conversation."
-      ),
-      vevent(
-        (c.__id||uid("r"))+"-2", start2,
+        (c.__id||uid("r"))+"-2", start2, new Date(start2.getTime()+15*60000),
         "Still need to follow up with "+p.name+"?",
         "Backup nudge from NicePeople — if you haven't jotted your note about "+p.name+" yet, now's the time."
       ),
@@ -1505,10 +1543,8 @@
   }
 
   function buildCatchUpIcs(c, days){
-    var p = c.profile;
     var now = new Date();
-    var start = new Date(Date.now() + days*24*3600000);
-    var end = new Date(start.getTime()+20*60000);
+    var f = catchUpEventFields(c, days);
     var lines = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
@@ -1517,13 +1553,13 @@
       "BEGIN:VEVENT",
       "UID:"+(c.__id||uid("cu"))+"-catchup-"+days+"-"+now.getTime()+"@nicepeople.app",
       "DTSTAMP:"+icsDate(now),
-      "DTSTART:"+icsDate(start),
-      "DTEND:"+icsDate(end),
-      "SUMMARY:"+icsEscape("Catch up with "+p.name),
-      "DESCRIPTION:"+icsEscape("3rd of the 3 Ups of Networking: Show up, Follow up, Catch up. It's been "+days+" days since you followed up with "+p.name+" — reach out and schedule a quick catch-up call."),
+      "DTSTART:"+icsDate(f.start),
+      "DTEND:"+icsDate(f.end),
+      "SUMMARY:"+icsEscape(f.title),
+      "DESCRIPTION:"+icsEscape(f.desc),
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
-      "DESCRIPTION:"+icsEscape("Catch up with "+p.name),
+      "DESCRIPTION:"+icsEscape(f.title),
       "TRIGGER:PT0M",
       "END:VALARM",
       "END:VEVENT",
@@ -1897,8 +1933,9 @@
     document.querySelectorAll("[data-remind]").forEach(function(b){
       b.onclick = function(){
         var id = b.getAttribute("data-remind");
+        var statusId = b.getAttribute("data-remindstatus") || ("remindStatus_"+id);
         var c = findConnById(id);
-        if(c) downloadFollowUpReminder(c, "remindStatus_"+id);
+        if(c) downloadFollowUpReminder(c, statusId);
       };
     });
     document.querySelectorAll("[data-catchupdays]").forEach(function(b){
@@ -1910,10 +1947,18 @@
         c.catchUpDays = days;
         c.catchUpScheduledAt = Date.now() + days*86400000;
         saveConns(state.connections);
-        var group = b.parentElement;
-        if(group) group.querySelectorAll(".chip").forEach(function(x){ x.classList.remove("selected"); });
-        b.classList.add("selected");
-        downloadCatchUpReminder(c, days, "catchupStatus_"+id);
+        // Re-render rather than just toggling .selected in place: picking a
+        // day now reveals the Google/Outlook/.ics add-to-calendar row below,
+        // which only renderConnCard knows how to build.
+        render();
+      };
+    });
+    document.querySelectorAll("[data-catchupics]").forEach(function(b){
+      b.onclick = function(){
+        var id = b.getAttribute("data-catchupics");
+        var days = parseInt(b.getAttribute("data-catchupicsdays"),10);
+        var c = findConnById(id);
+        if(c) downloadCatchUpReminder(c, days, "catchupStatus_"+id);
       };
     });
     document.querySelectorAll("[data-delete]").forEach(function(b){
@@ -1943,13 +1988,6 @@
         navigator.clipboard.writeText(link).then(shown).catch(function(){ legacyCopy(link, shown); });
       } else { legacyCopy(link, shown); }
     };
-    var btnRemindOverlay = document.getElementById("btnRemindOverlay");
-    if(btnRemindOverlay) btnRemindOverlay.onclick = function(){
-      var p = state.justConnected;
-      var c = p && state.connections.find(function(x){ return x.profile.id === p.id; });
-      if(c) downloadFollowUpReminder(c, "overlayReminderStatus");
-    };
-
     var btnFullOnboard = document.getElementById("btnFullOnboard");
     if(btnFullOnboard) btnFullOnboard.onclick = function(){ state.quickCaptureExpanded = true; render(); };
     var btnCopyLink = document.getElementById("btnCopyLink");
