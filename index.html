@@ -754,6 +754,27 @@
       if(cb) cb();
     }catch(e){}
   }
+  // Sends someone's own badge link to another person remotely — the fix for
+  // "we met but only one of us finished our badge before we parted ways."
+  // Prefers the native share sheet (texting/AirDrop/email all work from
+  // there); falls back to copying the link so it can be pasted anywhere.
+  function shareOrCopyLink(url, statusId, title){
+    function showStatus(msg){ var s = document.getElementById(statusId); if(s){ s.textContent = msg; s.style.display = "block"; } }
+    function copyFallback(){
+      function shown(){ showStatus("Link copied — paste it into a text or email to them."); }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(shown).catch(function(){ legacyCopy(url, shown); });
+      } else { legacyCopy(url, shown); }
+    }
+    if(navigator.share){
+      navigator.share({ title: title || "My NicePeople badge", url: url }).catch(function(err){
+        if(err && err.name === "AbortError") return; // they closed the share sheet — not an error
+        copyFallback();
+      });
+    } else {
+      copyFallback();
+    }
+  }
 
   function renderQuickCapture(){
     var p = state.pending;
@@ -935,6 +956,9 @@
         '<button class="btn btn-ghost btn-block" id="btnSaveBadge">'+ICONS.download+' Save as image</button>' +
       '</div>' +
       '<p class="footnote" id="saveBadgeStatus" style="min-height:14px"></p>' +
+      '<button type="button" class="btn btn-ghost btn-block" id="btnShareBadgeLink" style="margin-top:4px">'+ICONS.link+' Share my badge link</button>' +
+      '<p class="footnote">Met someone who hasn’t made their badge yet? Send them this link — opening it connects you both, same as a scan.</p>' +
+      '<p class="footnote" id="shareBadgeStatus" style="min-height:14px"></p>' +
     '</div>';
 
     function tagsBlock(label, tags, isPersonal){
@@ -1093,7 +1117,11 @@
         '<div class="display">CONNECTED</div>' +
         '<div class="whomet">'+escapeHtml(p.name)+'</div>' +
         '<p>You’re connected on NicePeople now. If they haven’t scanned your badge yet, show it to them to complete the loop.</p>' +
-        (c ? '<div style="margin-top:14px">'+remindUi(c, "overlay")+'</div>' : '') +
+        '<div style="margin-top:14px">' +
+          '<button type="button" class="btn btn-ghost btn-block" id="btnShareBadgeLinkOverlay">'+ICONS.link+' Not with them right now? Send '+escapeHtml((p.name||"").split(" ")[0]||p.name)+' your link</button>' +
+          '<p class="footnote" id="shareBadgeStatusOverlay" style="min-height:14px"></p>' +
+        '</div>' +
+        (c ? '<div style="margin-top:4px">'+remindUi(c, "overlay")+'</div>' : '') +
         '<button class="btn btn-primary btn-block" id="btnCloseOverlay" style="margin-top:14px">See connections</button>' +
       '</div>' +
     '</div>';
@@ -1845,6 +1873,10 @@
     }
     var btnSaveBadge = document.getElementById("btnSaveBadge");
     if(btnSaveBadge) btnSaveBadge.onclick = saveBadgeImage;
+    var btnShareBadgeLink = document.getElementById("btnShareBadgeLink");
+    if(btnShareBadgeLink) btnShareBadgeLink.onclick = function(){
+      shareOrCopyLink(connectUrl(state.me), "shareBadgeStatus", "My NicePeople badge — "+state.me.name);
+    };
     var btnExportConns = document.getElementById("btnExportConns");
     if(btnExportConns) btnExportConns.onclick = exportConnections;
     var btnCancelEdit = document.getElementById("btnCancelEdit");
@@ -1978,6 +2010,10 @@
 
     var btnCloseOverlay = document.getElementById("btnCloseOverlay");
     if(btnCloseOverlay) btnCloseOverlay.onclick = function(){ state.justConnected = null; render(); };
+    var btnShareBadgeLinkOverlay = document.getElementById("btnShareBadgeLinkOverlay");
+    if(btnShareBadgeLinkOverlay) btnShareBadgeLinkOverlay.onclick = function(){
+      shareOrCopyLink(connectUrl(state.me), "shareBadgeStatusOverlay", "My NicePeople badge — "+state.me.name);
+    };
     var btnCloseBadgeSaved = document.getElementById("btnCloseBadgeSaved");
     if(btnCloseBadgeSaved) btnCloseBadgeSaved.onclick = function(){ state.justCreated = false; render(); };
     var btnCopyBackupOverlay = document.getElementById("btnCopyBackupOverlay");
