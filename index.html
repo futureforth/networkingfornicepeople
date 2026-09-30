@@ -507,6 +507,8 @@
     if(p.event) o.ev = p.event;
     if(p.profTags && p.profTags.length) o.p = p.profTags;
     if(p.persTags && p.persTags.length) o.s = p.persTags;
+    if(p.favBands) o.fb = p.favBands;
+    if(p.favMovies) o.fm = p.favMovies;
     if(includePhoto && p.photo) o.ph = p.photo;
     var c = {};
     if(p.contact){
@@ -525,7 +527,7 @@
       if(!o.i || !o.n) return null;
       return {
         id:o.i, name:o.n, headline:o.h||"", goal:o.g||"", event:o.ev||"", photo:o.ph||"",
-        profTags:o.p||[], persTags:o.s||[],
+        profTags:o.p||[], persTags:o.s||[], favBands:o.fb||"", favMovies:o.fm||"",
         contact:{ email:(o.c&&o.c.e)||"", phone:(o.c&&o.c.t)||"", linkedin:(o.c&&o.c.l)||"", instagram:(o.c&&o.c.ig)||"", other:(o.c&&o.c.o)||"" }
       };
     }catch(e){ return null; }
@@ -814,7 +816,7 @@
 
   /* ---------------- onboarding ---------------- */
   function renderOnboarding(isEdit){
-    var p = isEdit ? state.me : { name:"", headline:"", goal:"", event:"", photo:"", profTags:[], persTags:[], contact:{email:"",phone:"",linkedin:"",instagram:"",other:""} };
+    var p = isEdit ? state.me : { name:"", headline:"", goal:"", event:"", photo:"", profTags:[], persTags:[], favBands:"", favMovies:"", contact:{email:"",phone:"",linkedin:"",instagram:"",other:""} };
     formPhoto = p.photo || "";
     var goalParts = (p.goal||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
     var goalCustom = goalParts.filter(function(g){ return GOALS.indexOf(g) < 0; });
@@ -873,6 +875,8 @@
 
         tagField("Professional interests","profTags",p.profTags,"e.g. Communication, ADHD, Marketing") +
         tagField("Personal interests","persTags",p.persTags,"e.g. Improv, Hiking, Vinyl") +
+        field("Favorite band(s)","fFavBands","text",p.favBands,"e.g. Wilco, Fleet Foxes") +
+        field("Favorite movie(s)","fFavMovies","text",p.favMovies,"e.g. Almost Famous, Moonrise Kingdom") +
 
         '<div style="height:1px;background:var(--hairline)"></div>' +
         '<div class="eyebrow" style="color:var(--text-faint)">HOW PEOPLE REACH YOU (OPTIONAL)</div>' +
@@ -880,7 +884,7 @@
         field("Phone","fPhone","tel",p.contact.phone,"(555) 555-0100") +
         fieldPrefixed("LinkedIn","fLinkedin","linkedin.com/in/",stripUrlPrefix(p.contact.linkedin,["linkedin.com/in/","linkedin.com/"]),"dana") +
         fieldPrefixed("Instagram","fInstagram","instagram.com/",stripUrlPrefix(p.contact.instagram,["instagram.com/"]),"dana") +
-        field("Personal URL","fOther","url",p.contact.other,"yourwebsite.com") +
+        fieldPrefixed("Personal URL","fOther","https://",stripUrlPrefix(p.contact.other,[]),"yourwebsite.com") +
 
         '<button type="submit" class="btn btn-primary btn-block" style="margin-top:6px">'+(isEdit?"Save badge":(returning?"Complete my badge":"Create my badge"))+'</button>' +
       '</form>' +
@@ -917,6 +921,13 @@
     if(isAlreadyFull) return normalizeUrl(raw);
     return prefixUrl + raw.replace(/^\/+/,"");
   }
+  // Personal URL has no fixed domain to match against (unlike LinkedIn/Instagram),
+  // so it just gets an https:// prefix added if one isn't already there.
+  function buildHttpsUrl(id){
+    var raw = document.getElementById(id).value.trim();
+    if(!raw) return "";
+    return normalizeUrl(raw);
+  }
 
   function tagField(label, key, tags, ph){
     tags = tags || [];
@@ -949,6 +960,7 @@
       '<hr class="badge-divider">' +
       tagsBlock("Professional", p.profTags) +
       tagsBlock("Personal", p.persTags, true) +
+      favsBlock(p.favBands, p.favMovies) +
       '<div class="qr-wrap"><div id="qrcode"></div></div>' +
       '<p class="qr-caption">Hand them your phone, or let them scan this screen.<br>Scanning it connects you both — instantly.</p>' +
       '<div class="badge-actions">' +
@@ -965,6 +977,17 @@
       if(!tags || !tags.length) return "";
       return '<div class="badge-section"><div class="badge-tags-label eyebrow">'+label.toUpperCase()+'</div>' +
         '<div class="chiprow">' + tags.map(function(t){ return '<span class="chip tag'+(isPersonal?' stamp-tag':'')+'">'+escapeHtml(t)+'</span>'; }).join("") + '</div></div>';
+    }
+    function favsBlock(bands, movies){
+      if(!bands && !movies) return "";
+      var lines = "";
+      if(bands) lines += favLine("Favorite bands", bands);
+      if(movies) lines += favLine("Favorite movies", movies);
+      return '<div class="badge-section">'+lines+'</div>';
+    }
+    function favLine(label, value){
+      return '<div style="margin-top:4px"><span class="badge-tags-label eyebrow" style="display:block">'+label.toUpperCase()+'</span>' +
+        '<span style="font-size:14px">'+escapeHtml(value)+'</span></div>';
     }
   }
 
@@ -1100,6 +1123,7 @@
         '<button class="kebab" data-delete="'+c.__id+'" aria-label="Remove">'+ICONS.trash+'</button>' +
       '</div>' +
       (tags.length? '<div class="conn-tags">'+tags.map(function(t){return '<span class="chip tag">'+escapeHtml(t)+'</span>';}).join("")+'</div>' : '') +
+      ((p.favBands||p.favMovies)? '<div class="footnote" style="margin:4px 0 0">'+[p.favBands?"Bands: "+escapeHtml(p.favBands):"", p.favMovies?"Movies: "+escapeHtml(p.favMovies):""].filter(Boolean).join(" · ")+'</div>' : '') +
       (contactIcons? '<div class="contact-row">'+contactIcons+'</div>' : '') +
       noteArea +
       catchUpUi +
@@ -2105,12 +2129,14 @@
     profile.photo = formPhoto || "";
     profile.profTags = formTags.profTags.slice();
     profile.persTags = formTags.persTags.slice();
+    profile.favBands = document.getElementById("fFavBands").value.trim();
+    profile.favMovies = document.getElementById("fFavMovies").value.trim();
     profile.contact = {
       email: document.getElementById("fEmail").value.trim(),
       phone: document.getElementById("fPhone").value.trim(),
       linkedin: buildPrefixedUrl("https://linkedin.com/in/","fLinkedin",["linkedin.com/in/","linkedin.com/"]),
       instagram: buildPrefixedUrl("https://instagram.com/","fInstagram",["instagram.com/"]),
-      other: document.getElementById("fOther").value.trim()
+      other: buildHttpsUrl("fOther")
     };
 
     state.me = profile;

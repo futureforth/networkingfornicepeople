@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — NicePeople</title>
+<style>
+  :root{
+    --bg:#f2f0eb;
+    --surface:#ffffff;
+    --text:#000000;
+    --text-muted:#6f7279;
+    --text-faint:#9a9da3;
+    --accent:#f7941d;
+    --stamp:#00add8;
+    --hairline:rgba(0,0,0,0.16);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:40px 20px 80px;}
+  .back{display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--text-muted); text-decoration:none; margin-bottom:24px;}
+  .back:hover{color:var(--text);}
+  h1{font-size:26px; font-weight:800; margin:0 0 4px;}
+  .updated{font-size:13px; color:var(--text-faint); margin:0 0 28px;}
+  h2{font-size:16px; font-weight:800; margin:32px 0 8px;}
+  p{margin:0 0 14px; font-size:15px;}
+  ul{margin:0 0 14px; padding-left:20px;}
+  li{font-size:15px; margin-bottom:6px;}
+  .card{background:var(--surface); border:1px solid var(--hairline); border-radius:16px; padding:20px 22px; margin-bottom:28px;}
+  .card p:last-child{margin-bottom:0;}
+  a{color:var(--stamp);}
+  .footer{margin-top:40px; font-size:13px; color:var(--text-faint);}
+  .footer a{color:var(--text-faint); text-decoration:underline;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html">&larr; Back to NicePeople</a>
+    <h1>Privacy</h1>
+    <p class="updated">Last updated September 30, 2026</p>
+
+    <div class="card">
+      <p><strong>The short version:</strong> NicePeople doesn't have a server, a database, or an account system. There's nothing to sign up for and nothing of yours sitting on our servers, because we don't have any. Everything you enter stays on your own device unless you choose to share it.</p>
+    </div>
+
+    <h2>What we collect</h2>
+    <p>Nothing. We don't run analytics, trackers, ad pixels, or cookies of our own, and we don't have a database to put your information in even if we wanted to. When you fill out your badge — name, headline, interests, favorite bands or movies, contact info, photo — that information is saved only in your own browser's local storage, on your own device.</p>
+
+    <h2>How your badge works</h2>
+    <p>Your badge becomes a link and a QR code with your details encoded directly into it. When someone scans your badge or opens that link, their device reads your details straight out of the link itself — nothing is looked up from a server, because there isn't one. The same is true in reverse for the connections you make: your connections list is saved only in your own browser, on your own device.</p>
+    <p>That link isn't encrypted, just encoded — think of it like handing someone your contact card. Anyone who ends up with that link can read what's in it, so only put in what you'd be comfortable handing to someone in person.</p>
+
+    <h2>Backup links</h2>
+    <p>If you copy or email yourself a backup link so you can restore your badge on a new device, that link also contains your badge details in the same encoded form. Treat it the same way — store it somewhere only you can get to, like your own notes or email.</p>
+
+    <h2>Calendar reminders</h2>
+    <p>If you tap "Google Calendar" or "Outlook" to add a follow-up reminder, your browser opens that service's own site with the event details filled in — that's between you and Google or Microsoft, governed by their privacy policies, not ours. If you download an .ics file or use "email myself a reminder," those go through your own calendar app or email client, the same way any file or email you send from your device would.</p>
+
+    <h2>Hosting</h2>
+    <p>This site is hosted on Cloudflare Pages. Like any web host, Cloudflare may log basic technical information — such as IP addresses — for security and performance, the same as visiting any other website. We don't have access to a separate analytics dashboard about who visits or how they use the app, because we haven't added one.</p>
+
+    <h2>Third parties, ads, and selling data</h2>
+    <p>We don't sell, rent, or share your information with anyone, because we don't collect or store it in the first place. There are no ads in NicePeople and no third-party trackers.</p>
+
+    <h2>Changes to this page</h2>
+    <p>If this ever changes — for example, if a future version adds an optional account or backend feature — we'll update this page and make it clear what's different.</p>
+
+    <h2>Questions</h2>
+    <p>Reach out any time at <a href="mailto:dave@futureforth.com">dave@futureforth.com</a>.</p>
+
+    <p class="footer">NicePeople is made by <a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville.</p>
+  </div>
+</body>
+</html>
