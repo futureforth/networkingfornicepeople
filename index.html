@@ -678,7 +678,7 @@
 
   function renderFooter(){
     return '<p class="app-footer">© 2026 Networking For Nice People made with love by ' +
-      '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. 🇨🇦+🇮🇪=🇺🇸 · ' +
+      '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. · ' +
       '<a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>';
   }
 
@@ -874,10 +874,10 @@
           '<p class="footnote" style="margin:0">Shown to people you connect with — update this each time you head to a new event.</p>' +
         '</label>' +
 
-        tagField("Professional interests","profTags",p.profTags,"e.g. Communication, ADHD, Marketing") +
+        tagField("Professional interests","profTags",p.profTags,"e.g. Communication, Ethical AI, Marketing") +
         tagField("Personal interests","persTags",p.persTags,"e.g. Improv, Hiking, Vinyl") +
-        field("Favorite band(s)","fFavBands","text",p.favBands,"e.g. Wilco, Fleet Foxes") +
-        field("Favorite movie(s)","fFavMovies","text",p.favMovies,"e.g. Almost Famous, Moonrise Kingdom") +
+        field("Favorite band(s)","fFavBands","text",p.favBands,"e.g. Broken Social Scene, Neil Young, Sonic Youth") +
+        field("Favorite movie(s)","fFavMovies","text",p.favMovies,"e.g. Nirvanna The Band The Show The Movie") +
 
         '<div style="height:1px;background:var(--hairline)"></div>' +
         '<div class="eyebrow" style="color:var(--text-faint)">HOW PEOPLE REACH YOU (OPTIONAL)</div>' +
@@ -889,7 +889,7 @@
 
         '<button type="submit" class="btn btn-primary btn-block" style="margin-top:6px">'+(isEdit?"Save badge":(returning?"Complete my badge":"Create my badge"))+'</button>' +
       '</form>' +
-      '<p class="footnote">Your badge lives only in this browser — nothing is uploaded to a server, but that also means there’s no account to fall back on. Grab your backup link from Settings once you’ve made it, so a lost or new phone doesn’t mean a lost network.</p>' +
+      '<p class="footnote">IMPORTANT: Your badge lives only in this browser — nothing is uploaded to a server, but that also means there’s no account to fall back on. <b>Grab your backup link from Settings</b> once you’ve made it, so a lost or new phone doesn’t mean a lost network.</p>' +
       renderFooter() +
     '</div>';
 
