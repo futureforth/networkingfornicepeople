@@ -514,6 +514,25 @@
   function isIos(){ return (/iphone|ipad|ipod/i.test(UA) && !window.MSStream) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
   function isAndroid(){ return /android/i.test(UA); }
   function isPhoneLike(){ return isIos() || isAndroid() || /Mobi/i.test(UA); }
+  // The browser the person is actually in, so instructions never name the wrong
+  // one. Returns "" when it can't tell (the copy then says "your browser").
+  function browserName(){
+    if(/DuckDuckGo/i.test(UA)) return "DuckDuckGo";
+    if(isIos()){
+      if(/CriOS/i.test(UA)) return "Chrome";
+      if(/FxiOS/i.test(UA)) return "Firefox";
+      if(/EdgiOS/i.test(UA)) return "Edge";
+      if(/OPiOS|OPT\//i.test(UA)) return "Opera";
+      if(/Safari/i.test(UA)) return "Safari";
+      return "";
+    }
+    if(/SamsungBrowser/i.test(UA)) return "Samsung Internet";
+    if(/Firefox/i.test(UA)) return "Firefox";
+    if(/EdgA?\//i.test(UA)) return "Edge";
+    if(/OPR\//i.test(UA)) return "Opera";
+    if(/Chrome/i.test(UA)) return "Chrome";
+    return "";
+  }
 
   /* ---------------- shared-cache mirror ----------------
      On iPhone, the Home Screen app keeps its own storage, separate from Safari's.
@@ -800,11 +819,11 @@
       ["I made my badge on my computer. How do I get it on my phone?",
        "<p>On the computer, open Settings and choose <strong>Show the code to scan</strong>. Point your phone’s camera at the code. Your badge opens on your phone with a step to save it there.</p><p>Your photo doesn’t come along. Add it again on your phone with Edit badge.</p>"],
       ["How do I get back to my badge on my phone?",
-       "<p>Save NicePeople to your Home Screen, then open it from that icon every time. In Settings, choose <strong>Save to my Home Screen</strong> and follow the steps.</p><p><strong>iPhone:</strong> in Safari, tap the Share button, then Add to Home Screen.</p><p><strong>Android:</strong> in Chrome, open the three-dot menu, then Add to Home screen or Install app.</p>"],
+       "<p>Save NicePeople to your Home Screen, then open it from that icon every time. In Settings, choose <strong>Save to my Home Screen</strong> and follow the steps.</p><p><strong>iPhone:</strong> tap your browser’s Share button, then Add to Home Screen.</p><p><strong>Android:</strong> open your browser’s menu, then Add to Home screen or Install app.</p><p>The steps in Settings name the browser you’re using.</p>"],
       ["I don’t see “Add to Home Screen.”",
-       "<p>You’re probably inside your email or messages app’s built-in browser.</p><p><strong>iPhone:</strong> tap the compass icon or “Open in Safari” first, then follow the steps there.</p><p><strong>Android:</strong> open that app’s menu and choose “Open in Chrome,” then use Chrome’s three-dot menu.</p>"],
+       "<p>You’re probably inside your email or messages app’s built-in browser.</p><p>Open the page in your regular browser first, such as Safari or Chrome. Look for a compass icon or an “Open in browser” option in that app’s menu. Then follow the steps there.</p>"],
       ["I added it to my Home Screen and it opened empty.",
-       "<p>This is an iPhone quirk. On iPhone the Home Screen icon keeps its own copy, separate from Safari. On Android the icon and Chrome share one copy, so this shouldn’t happen there.</p><p>Tap <strong>Already made your badge on another device? Bring it here</strong> and scan or paste your badge in. Next time, add the icon using Settings → Save to my Home Screen so your badge comes along.</p>"],
+       "<p>This is an iPhone quirk. On iPhone the Home Screen icon keeps its own copy, separate from your browser. On Android the icon and your browser share one copy, so this shouldn’t happen there.</p><p>Tap <strong>Already made your badge on another device? Bring it here</strong> and scan or paste your badge in. Next time, add the icon using Settings → Save to my Home Screen so your badge comes along.</p>"],
       ["My backup link broke when I emailed or texted it.",
        "<p>Long links often get split. Open what you have, and the “That link got cut off” screen lets you paste the whole link, even if it’s on several lines. Scanning the code from Settings avoids the problem.</p>"],
       ["If I edit my badge on one device, does it update on the other?",
@@ -1478,11 +1497,17 @@
       body =
         '<p style="font-weight:600; color:var(--text)">One step left so you can get back to it:</p>' +
         '<ol class="steps">' +
-          step(1, 'Tap the Share button '+SHARE_ICON+' in Safari’s toolbar.') +
+          step(1, (function(){
+            var b = browserName();
+            if(b === "Safari") return 'Tap the Share button '+SHARE_ICON+' in Safari’s toolbar.';
+            if(b === "Chrome") return 'Tap the Share button '+SHARE_ICON+' at the end of Chrome’s address bar.';
+            if(b) return 'Open '+b+'’s menu and tap Share '+SHARE_ICON+'.';
+            return 'Tap the Share button '+SHARE_ICON+' in your browser.';
+          })()) +
           step(2, 'Choose <strong>Add to Home Screen</strong>, then <strong>Add</strong>.') +
           step(3, 'From now on, open NicePeople from that icon. Your badge will be waiting, ready to update for each event.') +
         '</ol>' +
-        '<div class="hint-box"><strong>No “Add to Home Screen” in the list?</strong> You’re inside your email or messages app. Tap the compass icon or “Open in Safari” first, then do these steps there.</div>' +
+        '<div class="hint-box"><strong>No “Add to Home Screen” in the list?</strong> You may be inside your email or messages app. Open this page in your regular browser first (look for a compass icon or “Open in browser”), then do these steps there.</div>' +
         '<p class="footnote" style="margin-top:10px">On iPhone the Home Screen icon keeps its own copy, so always open it from there.</p>';
     } else if(isAndroid()){
       body = deferredInstall ?
@@ -1492,11 +1517,15 @@
         :
         '<p style="font-weight:600; color:var(--text)">One step left so you can get back to it:</p>' +
         '<ol class="steps">' +
-          step(1, 'Open your browser’s menu (the three dots).') +
+          step(1, (function(){
+            var b = browserName();
+            if(b === "Samsung Internet") return 'Open Samsung Internet’s menu (the three lines).';
+            return 'Open '+(b ? b+'’s' : 'your browser’s')+' menu (the three dots).';
+          })()) +
           step(2, 'Choose <strong>Add to Home screen</strong> or <strong>Install app</strong>.') +
           step(3, 'Open NicePeople from that icon before each event and tap the event tag to update it.') +
         '</ol>' +
-        '<div class="hint-box"><strong>Don’t see it?</strong> If this opened inside another app, use its menu to open the page in Chrome first.</div>';
+        '<div class="hint-box"><strong>Don’t see it?</strong> If this opened inside another app, use its menu to open the page in your regular browser first.</div>';
       if(deferredInstall) primary = '<button class="btn btn-text btn-sm" id="btnCloseSaveGuide" style="margin-top:10px">Not now</button>';
     } else {
       body =
