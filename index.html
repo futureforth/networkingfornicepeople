@@ -467,7 +467,9 @@
   .footnote{color:var(--text-faint); font-size:11.5px; text-align:center; line-height:1.5; margin-top:6px;}
   @keyframes statusPulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
   .status-pulse{ animation:statusPulse 1s ease-in-out infinite; }
-  .app-footer{color:var(--text-faint); font-size:11px; text-align:center; line-height:1.5; margin-top:22px; padding-top:2px;}
+  .app-footer{color:var(--text-muted); font-size:11.5px; text-align:center; line-height:1.55; margin-top:22px; padding-top:2px; display:flex; flex-direction:column; gap:8px;}
+  .app-footer p{margin:0; text-wrap:pretty;}
+  .intro-hero p.hero-tag{color:var(--text); font-family:'Fengardo Neue Black',system-ui,sans-serif; font-weight:900; font-size:18px; line-height:1.25; margin-top:12px;}
   .app-footer a{color:var(--text-muted); text-decoration:underline; text-underline-offset:2px;}
   .app-footer a:hover{color:var(--text);}
 
@@ -793,14 +795,16 @@
        "<p>No. Your photo shows on your own badge only, because it’s too big to fit in a QR code. They get your name, headline, goals, interests and contact info.</p>"]
     ]},
     { title:"Using it on your phone", items:[
+      ["Does it work on both iPhone and Android?",
+       "<p>Yes. Badges, scanning, connections, notes, reminders and backups work the same on both. The only differences are how you save it to your Home Screen and how you open a link from an email app. Those answers below cover each phone.</p>"],
       ["I made my badge on my computer. How do I get it on my phone?",
        "<p>On the computer, open Settings and choose <strong>Show the code to scan</strong>. Point your phone’s camera at the code. Your badge opens on your phone with a step to save it there.</p><p>Your photo doesn’t come along. Add it again on your phone with Edit badge.</p>"],
       ["How do I get back to my badge on my phone?",
-       "<p>Save NicePeople to your Home Screen, then open it from that icon every time. In Settings, choose <strong>Save to my Home Screen</strong> and follow the steps.</p>"],
-      ["I don’t see “Add to Home Screen” on my iPhone.",
-       "<p>You’re probably inside your email or messages app’s built-in browser. Tap the compass icon or “Open in Safari” first, then follow the steps there.</p>"],
-      ["I added it to my iPhone Home Screen and it opened empty.",
-       "<p>On iPhone the Home Screen icon keeps its own copy, separate from Safari. Tap <strong>Already made your badge on another device? Bring it here</strong> and scan or paste your badge in. Next time, add the icon using Settings → Save to my Home Screen so your badge comes along.</p>"],
+       "<p>Save NicePeople to your Home Screen, then open it from that icon every time. In Settings, choose <strong>Save to my Home Screen</strong> and follow the steps.</p><p><strong>iPhone:</strong> in Safari, tap the Share button, then Add to Home Screen.</p><p><strong>Android:</strong> in Chrome, open the three-dot menu, then Add to Home screen or Install app.</p>"],
+      ["I don’t see “Add to Home Screen.”",
+       "<p>You’re probably inside your email or messages app’s built-in browser.</p><p><strong>iPhone:</strong> tap the compass icon or “Open in Safari” first, then follow the steps there.</p><p><strong>Android:</strong> open that app’s menu and choose “Open in Chrome,” then use Chrome’s three-dot menu.</p>"],
+      ["I added it to my Home Screen and it opened empty.",
+       "<p>This is an iPhone quirk. On iPhone the Home Screen icon keeps its own copy, separate from Safari. On Android the icon and Chrome share one copy, so this shouldn’t happen there.</p><p>Tap <strong>Already made your badge on another device? Bring it here</strong> and scan or paste your badge in. Next time, add the icon using Settings → Save to my Home Screen so your badge comes along.</p>"],
       ["My backup link broke when I emailed or texted it.",
        "<p>Long links often get split. Open what you have, and the “That link got cut off” screen lets you paste the whole link, even if it’s on several lines. Scanning the code from Settings avoids the problem.</p>"],
       ["If I edit my badge on one device, does it update on the other?",
@@ -808,7 +812,7 @@
     ]},
     { title:"Keeping it safe", items:[
       ["Can I lose my badge?",
-       "<p>Yes, if your browser clears its data. Private and incognito tabs do this. So do privacy browsers like DuckDuckGo, and so does clearing site data by hand.</p>"],
+       "<p>Yes, if your browser clears its data. Private and incognito tabs do this. So do privacy browsers like DuckDuckGo, and so does clearing site data by hand. This is true on iPhone, Android and computers.</p>"],
       ["How do I protect it?",
        "<p>Save NicePeople to your Home Screen, and email yourself your backup link from Settings → <strong>Get my backup link</strong>. For a copy that includes your photo, use <strong>Download backup file</strong>.</p>"],
       ["Does a backup include my connections?",
@@ -820,7 +824,7 @@
     ]},
     { title:"Connecting", items:[
       ["How do we connect?",
-       "<p>Scan each other’s codes with your phone cameras. Each person has to scan the other for both of you to have the connection.</p>"],
+       "<p>Scan each other’s codes with your phone cameras. Each person has to scan the other for both of you to have the connection. It works between any two phones, iPhone or Android.</p><p>If your camera app doesn’t react to the code, open NicePeople, go to the Scan tab and tap Start camera.</p>"],
       ["What if the person I meet doesn’t have a badge?",
        "<p>They can still scan yours. They get a quick way to email themselves your details and can make a badge later.</p>"],
       ["We’re not in the same place. Can we still connect?",
@@ -860,7 +864,7 @@
           '</ol>' +
         '</div>' +
         groups +
-        '<p class="footnote" style="margin-top:0">NicePeople is an alpha, so some of this will change.</p>' +
+        renderFooter() +
       '</div>' +
     '</div>';
   }
@@ -870,11 +874,17 @@
     render();
   }
 
+  // One footer, used on every screen (and mirrored by hand in privacy.html).
   function renderFooter(){
-    return '<p class="app-footer">© 2026 Networking For Nice People made with love by ' +
-      '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. 🇨🇦+🇮🇪=🇺🇸 · ' +
-      '<a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · ' +
-      '<a href="#help" data-help="1">Help &amp; FAQ</a></p>';
+    return '<footer class="app-footer">' +
+      '<p>I made this because we can’t rely on social networking sites; this alternative is 100% private to you. Also, many people don’t carry business cards. ' +
+        '<a href="https://davedelaney.me/blog/networking-sucks-do-this-instead" target="_blank" rel="noopener">Here’s the full story</a>.</p>' +
+      '<p>NicePeople is an alpha, so some of this will change.</p>' +
+      '<p>© 2026 Networking For Nice People made with love by ' +
+        '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. 🇨🇦+🇮🇪=🇺🇸 · ' +
+        '<a href="https://networkingfornicepeople.com/privacy.html" target="_blank" rel="noopener">Privacy</a> · ' +
+        '<a href="https://networkingfornicepeople.com/#help" data-help="1">Help &amp; FAQ</a></p>' +
+    '</footer>';
   }
 
   function renderTabbar(){
@@ -1010,6 +1020,7 @@
         '<span id="copyStatus" class="mono" style="font-size:11.5px; color:var(--stamp); display:none;">Copied — paste it in Notes or a text to yourself.</span>' +
       '</div>' +
       '<button type="button" class="btn btn-text" id="btnFullOnboard" style="align-self:center">Or make your badge now (2 min) →</button>' +
+      renderFooter() +
     '</div>';
   }
 
@@ -1035,6 +1046,7 @@
             '<p><strong>'+escapeHtml(state.pending.name)+'</strong> shared their badge with you. Finish yours now to lock in the connection and turn on your follow-up reminder.</p>'
           :
             '<div class="display">MAKE<br>YOUR<br>BADGE.</div>' +
+            '<p class="hero-tag"><strong>Show up, Follow up, Catch up.</strong></p>' +
             '<p>No feed, no followers, no algorithm deciding who you see. Show your badge, scan theirs, and you\'re connected — instantly, both ways.</p>' +
             '<button type="button" class="btn btn-text" id="btnBringBadge" style="text-align:left; margin-top:6px">Already made your badge on another device? Bring it here →</button>'
           ) +

@@ -33,8 +33,9 @@
   .card{background:var(--surface); border:1px solid var(--hairline); border-radius:16px; padding:20px 22px; margin-bottom:28px;}
   .card p:last-child{margin-bottom:0;}
   a{color:var(--stamp);}
-  .footer{margin-top:40px; font-size:13px; color:var(--text-faint);}
-  .footer a{color:var(--text-faint); text-decoration:underline;}
+  .footer{margin-top:40px; font-size:11.5px; line-height:1.55; color:var(--text-muted); text-align:center; display:flex; flex-direction:column; gap:8px;}
+  .footer p{margin:0; font-size:inherit;}
+  .footer a{color:var(--text-muted); text-decoration:underline; text-underline-offset:2px;}
 </style>
 </head>
 <body>
@@ -70,10 +71,13 @@
     <p>If this ever changes — for example, if a future version adds an optional account or backend feature — we'll update this page and make it clear what's different.</p>
 
     <h2>Questions</h2>
-     <p>Contact <a href="networkingfornicepeople@gmail.com">networkingfornicepeople@gmail.com</a>.</p>
-    
+    <p>Reach out any time at <a href="mailto:dave@futureforth.com">dave@futureforth.com</a>.</p>
 
-    <p class="footer">© 2026 Networking For Nice People made with love by <a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville.</p>
+    <footer class="footer">
+      <p>I made this because we can’t rely on social networking sites; this alternative is 100% private to you. Also, many people don’t carry business cards. <a href="https://davedelaney.me/blog/networking-sucks-do-this-instead" target="_blank" rel="noopener">Here’s the full story</a>.</p>
+      <p>NicePeople is an alpha, so some of this will change.</p>
+      <p>© 2026 Networking For Nice People made with love by <a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. 🇨🇦+🇮🇪=🇺🇸 · <a href="https://networkingfornicepeople.com/privacy.html">Privacy</a> · <a href="https://networkingfornicepeople.com/#help">Help &amp; FAQ</a></p>
+    </footer>
   </div>
 </body>
 </html>
