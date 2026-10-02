@@ -428,6 +428,40 @@
     width:100%; max-width:460px; padding:20px 20px calc(24px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; gap:14px;
   }
+  .sheet{max-height:92vh; max-height:92dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .stamp-card{max-height:calc(100vh - 48px); max-height:calc(100dvh - 48px); overflow-y:auto;}
+  .qr-move{background:#ffffff; border:2px solid var(--hairline-strong); border-radius:14px; padding:14px; display:flex; justify-content:center; align-self:center; margin:0 auto;}
+  .qr-move > div{width:100%; max-width:248px;}
+  .qr-move img, .qr-move canvas{width:100%; height:auto;}
+  .steps{list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; text-align:left;}
+  .steps li{display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text);}
+  .steps .num{flex-shrink:0; width:24px; height:24px; border-radius:50%; border:2px solid var(--hairline-strong); background:var(--accent); color:var(--accent-ink); font-family:'Fengardo Neue Black',sans-serif; font-weight:900; font-size:12.5px; display:flex; align-items:center; justify-content:center;}
+  .steps svg{display:inline-block !important; width:16px !important; height:16px !important; vertical-align:-3px;}
+  .hint-box{background:var(--surface-2); border:1px solid var(--hairline); border-radius:12px; padding:11px 13px; font-size:12.5px; line-height:1.5; color:var(--text-muted); text-align:left; margin-top:12px;}
+  .hint-box strong{color:var(--text);}
+  .bring-text{width:100%; min-height:110px; border:2px solid var(--hairline-strong); border-radius:12px; padding:11px 12px; font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace; background:var(--surface); color:var(--text); word-break:break-all; resize:vertical;}
+  .help-btn{padding:8px 12px; font-size:13px; border-radius:11px; white-space:nowrap; height:38px;}
+  .help-btn .help-q{display:none;}
+  @media (max-width:349px){ .help-btn .help-label{display:none;} .help-btn .help-q{display:inline;} .help-btn{width:38px; padding:0;} }
+  .topbar-actions{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+  .help-toprow{display:flex; justify-content:flex-end;}
+  .help-page{position:fixed; inset:0; z-index:80; background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .help-inner{max-width:460px; margin:0 auto; padding:calc(18px + env(safe-area-inset-top, 0px)) 20px calc(48px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; gap:22px;}
+  .help-head{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .help-head .display{font-size:26px; line-height:1;}
+  .help-short{background:var(--surface); border:2.5px solid var(--hairline-strong); border-radius:16px; padding:16px 16px 18px;}
+  .help-short .steps{margin-top:12px;}
+  .help-group{display:flex; flex-direction:column; gap:8px;}
+  .help-group h2{font-family:'Fengardo Neue',system-ui,sans-serif; font-size:11.5px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin:0 0 2px;}
+  .help-q-item{background:var(--surface); border:2px solid var(--hairline-strong); border-radius:14px;}
+  .help-q-item summary{list-style:none; cursor:pointer; padding:13px 40px 13px 14px; position:relative; font-family:'Fengardo Neue Black',system-ui,sans-serif; font-weight:900; font-size:15px; line-height:1.3;}
+  .help-q-item summary::-webkit-details-marker{display:none;}
+  .help-q-item summary::after{content:"+"; position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:20px; line-height:1; color:var(--accent);}
+  .help-q-item[open] summary::after{content:"–";}
+  .help-q-item summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:12px;}
+  .help-a{padding:0 14px 14px; font-size:14px; line-height:1.55; color:var(--text);}
+  .help-a p{margin:0 0 8px;} .help-a p:last-child{margin-bottom:0;}
+  .help-a strong{font-weight:600;}
   .sheet-title{font-family:'Fengardo Neue Black',sans-serif; font-weight:800; font-size:20px;}
   .sheet-section{border-top:1px solid var(--hairline); padding-top:14px;}
   .footnote{color:var(--text-faint); font-size:11.5px; text-align:center; line-height:1.5; margin-top:6px;}
@@ -469,9 +503,48 @@
   var LS_SEEDED = "nicepeople_seeded_v1";
 
   function loadMe(){ try{ var r = localStorage.getItem(LS_ME); return r? JSON.parse(r): null; }catch(e){ return null; } }
-  function saveMe(p){ try{ localStorage.setItem(LS_ME, JSON.stringify(p)); }catch(e){} }
+  function saveMe(p){ try{ localStorage.setItem(LS_ME, JSON.stringify(p)); }catch(e){} scheduleMirror(); }
   function loadConns(){ try{ var r = localStorage.getItem(LS_CONN); return r? JSON.parse(r): []; }catch(e){ return []; } }
-  function saveConns(c){ try{ localStorage.setItem(LS_CONN, JSON.stringify(c)); }catch(e){} }
+  function saveConns(c){ try{ localStorage.setItem(LS_CONN, JSON.stringify(c)); }catch(e){} scheduleMirror(); }
+
+  /* ---------------- device helpers ---------------- */
+  var UA = navigator.userAgent || "";
+  function isIos(){ return (/iphone|ipad|ipod/i.test(UA) && !window.MSStream) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+  function isAndroid(){ return /android/i.test(UA); }
+  function isPhoneLike(){ return isIos() || isAndroid() || /Mobi/i.test(UA); }
+
+  /* ---------------- shared-cache mirror ----------------
+     On iPhone, the Home Screen app keeps its own storage, separate from Safari's.
+     Cache Storage is the one store the two can share, so the badge (with photo) and
+     connections are mirrored there. A copy opened from the Home Screen with nothing
+     saved yet picks them up from this mirror on first launch. Best effort only:
+     the ?restore= start URL (see syncIosInstallManifest) is the primary path. */
+  var HANDOFF_CACHE = "nicepeople-handoff-v1";
+  var HANDOFF_KEY = "./__nicepeople-handoff.json";
+  var _mirrorTimer = null;
+  function scheduleMirror(){
+    if(_mirrorTimer) clearTimeout(_mirrorTimer);
+    _mirrorTimer = setTimeout(mirrorToSharedCache, 250);
+  }
+  function mirrorToSharedCache(){
+    _mirrorTimer = null;
+    try{
+      if(!("caches" in window)) return;
+      if(!state.me){ caches.delete(HANDOFF_CACHE).catch(function(){}); return; }
+      var body = JSON.stringify({ v:1, me:state.me, connections:state.connections });
+      caches.open(HANDOFF_CACHE).then(function(c){
+        return c.put(HANDOFF_KEY, new Response(body, { headers:{ "Content-Type":"application/json" } }));
+      }).catch(function(){});
+    }catch(e){}
+  }
+  function readSharedCache(){
+    try{
+      if(!("caches" in window)) return Promise.resolve(null);
+      return caches.open(HANDOFF_CACHE).then(function(c){ return c.match(HANDOFF_KEY); })
+        .then(function(r){ return r ? r.json() : null; })
+        .catch(function(){ return null; });
+    }catch(e){ return Promise.resolve(null); }
+  }
 
   /* ---------------- helpers ---------------- */
   function uid(prefix){ return (prefix||"p")+"_"+Math.random().toString(36).slice(2,9); }
@@ -500,8 +573,11 @@
     return s.toUpperCase();
   }
 
-  function encodeProfile(p, includePhoto){
+  function encodeProfile(p, includePhoto, includeStamp){
     var o = { i:p.id, n:p.name };
+    // "u" = when this badge was last edited. Only backups carry it, so a restore
+    // can tell an older copy from a newer one and never overwrite newer edits.
+    if(includeStamp && p.updatedAt) o.u = p.updatedAt;
     if(p.headline) o.h = p.headline;
     if(p.goal) o.g = p.goal;
     if(p.event) o.ev = p.event;
@@ -526,7 +602,7 @@
       var o = JSON.parse(b64urlDecode(str));
       if(!o.i || !o.n) return null;
       return {
-        id:o.i, name:o.n, headline:o.h||"", goal:o.g||"", event:o.ev||"", photo:o.ph||"",
+        id:o.i, name:o.n, headline:o.h||"", goal:o.g||"", event:o.ev||"", photo:o.ph||"", updatedAt:o.u||0,
         profTags:o.p||[], persTags:o.s||[], favBands:o.fb||"", favMovies:o.fm||"",
         contact:{ email:(o.c&&o.c.e)||"", phone:(o.c&&o.c.t)||"", linkedin:(o.c&&o.c.l)||"", instagram:(o.c&&o.c.ig)||"", other:(o.c&&o.c.o)||"" }
       };
@@ -551,10 +627,24 @@
     // characters, which makes the link too long for some browsers/mail apps/CDNs
     // to load reliably (it can hang instead of erroring). The full badge including
     // the photo is available via the backup FILE download instead (backupFileBlob).
-    return base + "?restore=" + encodeProfile(profile, false);
+    return base + "?restore=" + encodeProfile(profile, false, true);
+  }
+  // Pulls the badge data out of a backup link that may have been mangled in
+  // transit: wrapped across lines by an email app, quoted with ">", or pasted
+  // with stray spaces. Returns null when there is no restore link in the text.
+  function extractRestorePayload(text){
+    if(!text) return null;
+    var t = String(text).replace(/%0D|%0A|%20|%09/gi, "").replace(/\s+/g, "");
+    var at = t.indexOf("restore=");
+    if(at < 0) return null;
+    var rest = t.slice(at + 8).split(/[&#]/)[0];
+    return rest.replace(/[^A-Za-z0-9_-]/g, "");
+  }
+  function stripUrl(){
+    try{ history.replaceState(null, "", location.origin + location.pathname); }catch(e){}
   }
   function backupFileBlob(profile){
-    var payload = JSON.stringify({ app:"nicepeople-backup", v:1, data: encodeProfile(profile, true) });
+    var payload = JSON.stringify({ app:"nicepeople-backup", v:1, data: encodeProfile(profile, true, true) });
     return new Blob([payload], { type:"application/json" });
   }
   function backupFileName(profile){
@@ -611,7 +701,10 @@
     settingsOpen: false,
     resetArmed: false,
     backupOpen: false,     // "get my backup link" panel expanded in settings
-    a2hsHelpOpen: false,   // "add to home screen" help expanded in settings
+    moveOpen: false,       // "put this badge on your phone" QR expanded in settings
+    saveGuide: null,       // "new" | "updated" | "already" | "install": the save-to-this-device overlay
+    bringOpen: null,       // "cutoff" | "manual": the paste-your-link sheet
+    helpOpen: false,       // Help & FAQ screen (also opens from a #help link)
     restorePending: null,  // decoded profile from a ?restore= link, awaiting overwrite confirmation
     noteDraft: {},         // connId -> draft text while composing
     composingNote: null,   // connId currently open for note entry
@@ -663,6 +756,10 @@
     if(state.justCreated){ html += renderBadgeSavedOverlay(); }
     if(state.restorePending){ html += renderRestoreConfirm(); }
     if(state.settingsOpen){ html += renderSettingsSheet(); }
+    if(state.saveGuide && state.me && !state.restorePending){ html += renderSaveGuide(); }
+    if(state.bringOpen){ html += renderBringSheet(); }
+    if(state.helpOpen){ html += renderHelp(); }
+    syncIosInstallManifest();
 
     app.innerHTML = html;
     wireUp();
@@ -672,15 +769,112 @@
     return '' +
     '<header class="topbar">' +
       '<div class="wordmark"><img src="'+MASCOT_ICON+'" alt="" class="wordmark-mascot"/><span class="display">NICE PEOPLE</span></div>' +
-      '<button class="icon-btn" id="btnSettings" aria-label="Settings">'+ICONS.gear+'</button>' +
+      '<div class="topbar-actions">' + helpButton() +
+        '<button class="icon-btn" id="btnSettings" aria-label="Settings">'+ICONS.gear+'</button>' +
+      '</div>' +
     '</header>';
+  }
+  function helpButton(){
+    return '<button type="button" class="btn btn-ghost help-btn" data-help="1" aria-label="Help and FAQ"><span class="help-label">Help &amp; FAQ</span><span class="help-q" aria-hidden="true">?</span></button>';
+  }
+
+  /* ---------------- Help & FAQ ----------------
+     Lives inside the app so it works offline at events and ships with every
+     update. Keep these answers in step with the features they describe. */
+  var FAQ = [
+    { title:"Your badge", items:[
+      ["Where is my badge saved?",
+       "<p>On your device, in the browser or Home Screen app you made it in. There is no account and no login, and nothing is stored on a server.</p>"],
+      ["How do I change the event I’m at?",
+       "<p>Open NicePeople and tap the event tag at the top of your badge. Change it before each event. Everyone you connect with that day is tagged with that event, and the tag doesn’t change later.</p>"],
+      ["I changed my badge. Do people I already met see the update?",
+       "<p>No. They keep the version they scanned.</p>"],
+      ["Do people see my photo when they scan me?",
+       "<p>No. Your photo shows on your own badge only, because it’s too big to fit in a QR code. They get your name, headline, goals, interests and contact info.</p>"]
+    ]},
+    { title:"Using it on your phone", items:[
+      ["I made my badge on my computer. How do I get it on my phone?",
+       "<p>On the computer, open Settings and choose <strong>Show the code to scan</strong>. Point your phone’s camera at the code. Your badge opens on your phone with a step to save it there.</p><p>Your photo doesn’t come along. Add it again on your phone with Edit badge.</p>"],
+      ["How do I get back to my badge on my phone?",
+       "<p>Save NicePeople to your Home Screen, then open it from that icon every time. In Settings, choose <strong>Save to my Home Screen</strong> and follow the steps.</p>"],
+      ["I don’t see “Add to Home Screen” on my iPhone.",
+       "<p>You’re probably inside your email or messages app’s built-in browser. Tap the compass icon or “Open in Safari” first, then follow the steps there.</p>"],
+      ["I added it to my iPhone Home Screen and it opened empty.",
+       "<p>On iPhone the Home Screen icon keeps its own copy, separate from Safari. Tap <strong>Already made your badge on another device? Bring it here</strong> and scan or paste your badge in. Next time, add the icon using Settings → Save to my Home Screen so your badge comes along.</p>"],
+      ["My backup link broke when I emailed or texted it.",
+       "<p>Long links often get split. Open what you have, and the “That link got cut off” screen lets you paste the whole link, even if it’s on several lines. Scanning the code from Settings avoids the problem.</p>"],
+      ["If I edit my badge on one device, does it update on the other?",
+       "<p>No. Each device keeps its own copy. Pick one as your real badge, ideally your phone. An older link or code can’t overwrite newer changes.</p>"]
+    ]},
+    { title:"Keeping it safe", items:[
+      ["Can I lose my badge?",
+       "<p>Yes, if your browser clears its data. Private and incognito tabs do this. So do privacy browsers like DuckDuckGo, and so does clearing site data by hand.</p>"],
+      ["How do I protect it?",
+       "<p>Save NicePeople to your Home Screen, and email yourself your backup link from Settings → <strong>Get my backup link</strong>. For a copy that includes your photo, use <strong>Download backup file</strong>.</p>"],
+      ["Does a backup include my connections?",
+       "<p>No, only your badge. To keep a copy of the people you’ve met, open Connections and choose <strong>Export as .csv</strong>. Connections can’t be moved to another device.</p>"],
+      ["I’m getting a new phone. What do I do?",
+       "<p>On the old phone, open Settings → Show the code to scan and scan it with the new phone. Export your connections first, because they stay on the old phone.</p>"],
+      ["How do I delete everything?",
+       "<p>Settings → <strong>Reset all data on this device</strong>. This erases your badge and connections from this device only.</p>"]
+    ]},
+    { title:"Connecting", items:[
+      ["How do we connect?",
+       "<p>Scan each other’s codes with your phone cameras. Each person has to scan the other for both of you to have the connection.</p>"],
+      ["What if the person I meet doesn’t have a badge?",
+       "<p>They can still scan yours. They get a quick way to email themselves your details and can make a badge later.</p>"],
+      ["We’re not in the same place. Can we still connect?",
+       "<p>Yes. On your badge, tap <strong>Share my badge link</strong> and send it to them. Opening it connects them to you, the same as a scan.</p>"],
+      ["Does it work without Wi-Fi?",
+       "<p>Your badge and its code work offline once you’ve opened NicePeople on that device. The person scanning you needs a connection if they have never opened NicePeople before.</p>"],
+      ["How does it know where we met?",
+       "<p>It uses the event on your badge at the moment you connect. If yours is blank, it uses theirs.</p>"]
+    ]},
+    { title:"Notes and reminders", items:[
+      ["Who can see my notes about people?",
+       "<p>Only you. Notes stay on your device. They are included in the .csv export, so keep that file to yourself.</p>"],
+      ["Will the app remind me to follow up?",
+       "<p>Only if you ask it to. Tap <strong>Remind me to follow up</strong> to add two reminders to your calendar, 5 hours and 17 hours after you met. After that you can add a catch-up reminder for 30, 60 or 90 days out.</p>"],
+      ["Can I change or cancel a reminder?",
+       "<p>Do that in your calendar app. NicePeople can’t edit a reminder once it has been added.</p>"]
+    ]}
+  ];
+  function renderHelp(){
+    var groups = FAQ.map(function(g){
+      return '<section class="help-group"><h2>'+escapeHtml(g.title)+'</h2>' +
+        g.items.map(function(it){
+          return '<details class="help-q-item"><summary>'+escapeHtml(it[0])+'</summary><div class="help-a">'+it[1]+'</div></details>';
+        }).join("") + '</section>';
+    }).join("");
+    return '<div class="help-page" id="helpPage" role="dialog" aria-modal="true" aria-label="Help and FAQ">' +
+      '<div class="help-inner">' +
+        '<div class="help-head"><span class="display">HELP &amp; FAQ</span>' +
+          '<button class="icon-btn" id="btnCloseHelp" aria-label="Close help">'+ICONS.close+'</button></div>' +
+        '<div class="help-short">' +
+          '<div class="flabel" style="font-size:12.5px; font-weight:600; color:var(--text-muted)">THE SHORT VERSION</div>' +
+          '<ol class="steps">' +
+            step(1, 'Keep your badge on the phone you bring to events.') +
+            step(2, 'Use your regular browser, not a private tab, and save NicePeople to your Home Screen.') +
+            step(3, 'Open it from that icon and update your event before you walk in.') +
+            step(4, 'Email yourself a backup link, just in case.') +
+          '</ol>' +
+        '</div>' +
+        groups +
+        '<p class="footnote" style="margin-top:0">NicePeople is an alpha, so some of this will change.</p>' +
+      '</div>' +
+    '</div>';
+  }
+  function closeHelp(){
+    state.helpOpen = false;
+    try{ if(location.hash === "#help") history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+    render();
   }
 
   function renderFooter(){
     return '<p class="app-footer">© 2026 Networking For Nice People made with love by ' +
-      '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. · ' +
-      '<a href="mailto:networkingfornicepeople@gmail.com">Contact</a> · ' +  
-      '<a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>';
+      '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. 🇨🇦+🇮🇪=🇺🇸 · ' +
+      '<a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · ' +
+      '<a href="#help" data-help="1">Help &amp; FAQ</a></p>';
   }
 
   function renderTabbar(){
@@ -744,6 +938,8 @@
       "Tap this link any time to get your badge back:",
       link,
       "",
+      "If the link is split across lines and tapping it says it got cut off, copy the whole thing and paste it into the box on that screen.",
+      "",
       "— NicePeople (skip the feed)"
     ].join("\n");
     return "mailto:?subject=" + encodeURIComponent("My NicePeople badge backup") + "&body=" + encodeURIComponent(body);
@@ -795,7 +991,8 @@
     }
 
     return '' +
-    '<div style="padding:28px 20px 60px; display:flex; flex-direction:column; gap:18px;">' +
+    '<div style="padding:22px 20px 60px; display:flex; flex-direction:column; gap:18px;">' +
+      '<div class="help-toprow">'+helpButton()+'</div>' +
       '<div class="wordmark" style="justify-content:center; margin-bottom:2px"><span class="display" style="font-size:20px">NICE PEOPLE</span></div>' +
       '<div class="stamp-seal" style="margin:4px auto 0;">'+ICONS.mail+'</div>' +
       '<div style="text-align:center">' +
@@ -830,6 +1027,7 @@
         '<header class="topbar" style="padding:0"><span class="display" style="font-size:22px">EDIT BADGE</span>'+
           '<button class="icon-btn" id="btnCancelEdit" aria-label="Cancel">'+ICONS.close+'</button></header>'
         :
+        '<div class="help-toprow" style="margin-bottom:-10px">'+helpButton()+'</div>' +
         '<div class="intro-hero">' +
           '<div class="wordmark" style="margin-bottom:16px"><img src="'+MASCOT_ICON+'" alt="" class="wordmark-mascot"/><span class="display" style="font-size:22px">NICE PEOPLE</span><span class="mono tag">SKIP THE FEED</span></div>' +
           (returning ?
@@ -837,7 +1035,8 @@
             '<p><strong>'+escapeHtml(state.pending.name)+'</strong> shared their badge with you. Finish yours now to lock in the connection and turn on your follow-up reminder.</p>'
           :
             '<div class="display">MAKE<br>YOUR<br>BADGE.</div>' +
-            '<p>No feed, no followers, no algorithm deciding who you see. Show your badge, scan theirs, and you\'re connected — instantly, both ways.</p>'
+            '<p>No feed, no followers, no algorithm deciding who you see. Show your badge, scan theirs, and you\'re connected — instantly, both ways.</p>' +
+            '<button type="button" class="btn btn-text" id="btnBringBadge" style="text-align:left; margin-top:6px">Already made your badge on another device? Bring it here →</button>'
           ) +
         '</div>'
       ) +
@@ -875,10 +1074,10 @@
           '<p class="footnote" style="margin:0">Shown to people you connect with — update this each time you head to a new event.</p>' +
         '</label>' +
 
-        tagField("Professional interests","profTags",p.profTags,"e.g. Communication, Ethical AI, Marketing") +
+        tagField("Professional interests","profTags",p.profTags,"e.g. Communication, ADHD, Marketing") +
         tagField("Personal interests","persTags",p.persTags,"e.g. Improv, Hiking, Vinyl") +
-        field("Favorite band(s)","fFavBands","text",p.favBands,"e.g. Broken Social Scene, Neil Young, Sonic Youth") +
-        field("Favorite movie(s)","fFavMovies","text",p.favMovies,"e.g. Nirvanna The Band The Show The Movie") +
+        field("Favorite band(s)","fFavBands","text",p.favBands,"e.g. Wilco, Fleet Foxes") +
+        field("Favorite movie(s)","fFavMovies","text",p.favMovies,"e.g. Almost Famous, Moonrise Kingdom") +
 
         '<div style="height:1px;background:var(--hairline)"></div>' +
         '<div class="eyebrow" style="color:var(--text-faint)">HOW PEOPLE REACH YOU (OPTIONAL)</div>' +
@@ -890,7 +1089,7 @@
 
         '<button type="submit" class="btn btn-primary btn-block" style="margin-top:6px">'+(isEdit?"Save badge":(returning?"Complete my badge":"Create my badge"))+'</button>' +
       '</form>' +
-      '<p class="footnote">IMPORTANT: Your badge lives only in this browser — nothing is uploaded to a server, but that also means there’s no account to fall back on. <b>Grab your backup link from Settings</b> once you’ve made it, so a lost or new phone doesn’t mean a lost network.</p>' +
+      '<p class="footnote">Your badge lives only in this browser — nothing is uploaded to a server, but that also means there’s no account to fall back on. Grab your backup link from Settings once you’ve made it, so a lost or new phone doesn’t mean a lost network.</p>' +
       renderFooter() +
     '</div>';
 
@@ -1160,19 +1359,33 @@
         '<div class="stamp-seal"><img src="'+MASCOT_ICON+'" alt="" style="width:44px;height:44px;object-fit:contain;"/></div>' +
         '<div class="display">BADGE SAVED</div>' +
         '<p>It’s saved right here on this device — no account, nothing to remember. Just reopen this page next time and your badge will be exactly as you left it.</p>' +
+        (!isPhoneLike() ?
+          '<div class="hint-box" style="text-align:center"><strong>Taking this to an event?</strong> Put it on your phone now. Point your phone’s camera at this code.</div>' +
+          '<div class="qr-move" style="margin-top:10px"><div data-moveqr="1"></div></div>' : '') +
         '<p class="footnote" style="margin-top:10px; color:var(--danger); font-weight:600;">Using a private/incognito tab, or a browser that clears data automatically (like DuckDuckGo)? This device won’t remember it — back it up now, just in case:</p>' +
         '<a class="btn btn-ghost btn-block" id="btnEmailBackup" href="'+attr(backupMailtoHref(link))+'" style="margin-top:8px">'+ICONS.mail+' Email myself a backup link</a>' +
         '<button type="button" class="btn btn-text btn-sm" id="btnCopyBackupOverlay" style="margin-top:6px">Copy backup link instead</button>' +
         '<span id="badgeSavedCopyStatus" class="mono" style="font-size:11.5px; color:var(--stamp); display:none; margin-top:4px;">Copied — paste it in Notes or a text to yourself.</span>' +
         '<p class="footnote" style="margin-top:8px">That link skips your photo to keep it short and reliable. For a full backup with the photo included, use Settings → Back up your badge → Download backup file.</p>' +
-        '<p class="footnote" style="margin-top:12px">Tip: add NicePeople to your Home Screen (Settings → “Add to home screen”) so it’s always one tap away.</p>' +
-        '<button class="btn btn-primary btn-block" id="btnCloseBadgeSaved" style="margin-top:10px">Got it</button>' +
+        (isPhoneLike() && !isStandaloneDisplay() ?
+          '<button class="btn btn-primary btn-block" id="btnBadgeSavedInstall" style="margin-top:12px">Save it to my Home Screen</button>' +
+          '<button class="btn btn-text btn-sm" id="btnCloseBadgeSaved" style="margin-top:6px">Not now</button>' :
+          '<button class="btn btn-primary btn-block" id="btnCloseBadgeSaved" style="margin-top:10px">Got it</button>') +
       '</div>' +
     '</div>';
   }
 
   function renderSettingsSheet(){
     var backupSection = state.me ? (
+      '<div class="sheet-section">' +
+        '<div class="flabel" style="margin-bottom:6px">'+(isPhoneLike() ? 'MOVE THIS BADGE TO ANOTHER DEVICE' : 'PUT THIS BADGE ON YOUR PHONE')+'</div>' +
+        (state.moveOpen ?
+          '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0 0 10px">Point the other device’s camera at this code. Your badge opens there with a step to save it. Your photo stays behind, so add it again there.</p>' +
+          '<div class="qr-move"><div data-moveqr="1"></div></div>' :
+          '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0 0 8px">Skip the long link. Scan one code and your badge opens on the other device.</p>' +
+          '<button class="btn btn-primary btn-block" id="btnShowMove">Show the code to scan</button>'
+        ) +
+      '</div>' +
       '<div class="sheet-section">' +
         '<div class="flabel" style="margin-bottom:6px">BACK UP YOUR BADGE</div>' +
         '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0 0 8px">Your badge and connections live only in this browser. Get a personal link that restores your info (not your photo — that keeps the link short enough to actually work), or download a backup file that keeps everything, photo included.</p>' +
@@ -1190,20 +1403,11 @@
       '</div>'
     ) : "";
 
-    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-    var a2hsSection =
+    var a2hsSection = (state.me && !isStandaloneDisplay()) ?
       '<div class="sheet-section">' +
         '<div class="flabel" style="margin-bottom:6px">KEEP IT ONE TAP AWAY</div>' +
-        (state.a2hsHelpOpen ?
-          '<p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin:0">'+
-            (ios ?
-              'Tap the Share icon in your browser bar, then choose “Add to Home Screen.” NicePeople will open like an app, and it’s less likely to be cleared from your browser’s cache.' :
-              'Open your browser’s menu and choose “Add to Home screen” (or “Install app”). NicePeople will open like an app, and it’s less likely to be cleared from your browser’s cache.'
-            ) +
-          '</p>' :
-          '<button class="btn btn-ghost btn-block" id="btnShowA2hsHelp">Add to home screen</button>'
-        ) +
-      '</div>';
+        '<button class="btn btn-ghost btn-block" id="btnShowA2hsHelp">'+(isPhoneLike() ? 'Save to my Home Screen' : 'How to get back to this badge')+'</button>' +
+      '</div>' : "";
 
     return '<div class="sheet-backdrop" id="sheetBackdrop">' +
       '<div class="sheet">' +
@@ -1233,24 +1437,172 @@
     '</div>';
   }
 
+  /* ---------------- save-to-this-device guide ----------------
+     Shown after a badge arrives on a device (restore link / QR / file), and from
+     the Home Screen banner and Settings. Its job: make sure the person leaves with
+     a reliable way back to their badge so they can update their event next time. */
+  var SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3.5"/><path d="M8 7l4-3.5L16 7"/><path d="M7 11H6a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 18 11h-1"/></svg>';
+  var deferredInstall = null;
+  function step(n, html){ return '<li><span class="num">'+n+'</span><span>'+html+'</span></li>'; }
+  function renderSaveGuide(){
+    var mode = state.saveGuide;
+    var standalone = isStandaloneDisplay();
+    var device = isPhoneLike() ? "phone" : "computer";
+    var title = mode === "install" ? "KEEP IT ONE TAP AWAY" :
+                mode === "updated" ? "BADGE UPDATED" :
+                mode === "already" ? "YOUR BADGE IS ALREADY HERE" :
+                "YOUR BADGE IS ON THIS " + device.toUpperCase();
+    var lead = mode === "install" ? "" :
+               mode === "updated" ? "This "+device+" now has the newer version of your badge." :
+               mode === "already" ? "This "+device+" has the same or a newer version, so nothing was changed." :
+               "It’s saved on this "+device+". You don’t need the link again.";
+    var photoNote = (!state.me.photo && mode !== "install") ?
+      '<p class="footnote" style="margin-top:10px">Your photo didn’t come along. Add it with Edit badge.</p>' : "";
+    var body, primary = '<button class="btn btn-primary btn-block" id="btnCloseSaveGuide" style="margin-top:14px">Done</button>';
+
+    if(standalone){
+      body = '<p>Open NicePeople from your Home Screen before each event and tap the event tag at the top of your badge to update it.</p>';
+    } else if(isIos()){
+      body =
+        '<p style="font-weight:600; color:var(--text)">One step left so you can get back to it:</p>' +
+        '<ol class="steps">' +
+          step(1, 'Tap the Share button '+SHARE_ICON+' in Safari’s toolbar.') +
+          step(2, 'Choose <strong>Add to Home Screen</strong>, then <strong>Add</strong>.') +
+          step(3, 'From now on, open NicePeople from that icon. Your badge will be waiting, ready to update for each event.') +
+        '</ol>' +
+        '<div class="hint-box"><strong>No “Add to Home Screen” in the list?</strong> You’re inside your email or messages app. Tap the compass icon or “Open in Safari” first, then do these steps there.</div>' +
+        '<p class="footnote" style="margin-top:10px">On iPhone the Home Screen icon keeps its own copy, so always open it from there.</p>';
+    } else if(isAndroid()){
+      body = deferredInstall ?
+        '<p style="font-weight:600; color:var(--text)">One step left so you can get back to it:</p>' +
+        '<button class="btn btn-primary btn-block" id="btnInstallNow" style="margin-top:10px">'+ICONS.download+' Add NicePeople to my Home Screen</button>' +
+        '<p class="footnote" style="margin-top:8px">Then open it from that icon before each event and tap the event tag to update it.</p>'
+        :
+        '<p style="font-weight:600; color:var(--text)">One step left so you can get back to it:</p>' +
+        '<ol class="steps">' +
+          step(1, 'Open your browser’s menu (the three dots).') +
+          step(2, 'Choose <strong>Add to Home screen</strong> or <strong>Install app</strong>.') +
+          step(3, 'Open NicePeople from that icon before each event and tap the event tag to update it.') +
+        '</ol>' +
+        '<div class="hint-box"><strong>Don’t see it?</strong> If this opened inside another app, use its menu to open the page in Chrome first.</div>';
+      if(deferredInstall) primary = '<button class="btn btn-text btn-sm" id="btnCloseSaveGuide" style="margin-top:10px">Not now</button>';
+    } else {
+      body =
+        '<p>Bookmark this page to come back to it on this computer. To use your badge at events, put it on your phone:</p>' +
+        '<div class="qr-move" style="margin-top:12px"><div data-moveqr="1"></div></div>' +
+        '<p class="footnote" style="margin-top:8px">Point your phone’s camera at the code.</p>';
+    }
+    return '<div class="overlay" id="saveGuideOverlay" role="dialog" aria-modal="true" aria-label="'+attr(title)+'">' +
+      '<div class="stamp-card">' +
+        '<div class="stamp-seal"><img src="'+MASCOT_ICON+'" alt="" style="width:44px;height:44px;object-fit:contain;"/></div>' +
+        '<div class="display" style="text-wrap:balance">'+title+'</div>' +
+        (lead ? '<p>'+lead+'</p>' : '') +
+        body + photoNote + primary +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ---------------- paste-your-link sheet ---------------- */
+  function renderBringSheet(){
+    var cut = state.bringOpen === "cutoff";
+    return '<div class="sheet-backdrop" id="bringBackdrop">' +
+      '<div class="sheet" role="dialog" aria-modal="true">' +
+        '<div class="sheet-title">'+(cut ? 'THAT LINK GOT CUT OFF' : 'BRING YOUR BADGE HERE')+'</div>' +
+        '<div style="font-size:13.5px; color:var(--text-muted); line-height:1.5">'+
+          (cut ? 'Part of your link went missing on the way here. Email and text apps often split long links. ' : '') +
+          '<strong style="color:var(--text)">Easiest:</strong> on the device that has your badge, open Settings and choose “Show the code to scan,” then point this device’s camera at it.</div>' +
+        '<div class="sheet-section">' +
+          '<label class="flabel" for="bringText" style="display:block; margin-bottom:6px">OR PASTE YOUR WHOLE LINK</label>' +
+          '<textarea class="bring-text" id="bringText" placeholder="Paste the link here. It’s fine if it’s split across several lines." autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>' +
+          '<span id="bringStatus" class="mono" style="font-size:11.5px; color:var(--danger); display:none; margin-top:6px;"></span>' +
+          '<button class="btn btn-primary btn-block" id="btnBringRestore" style="margin-top:10px">Restore my badge</button>' +
+        '</div>' +
+        '<label class="btn btn-text btn-sm" style="cursor:pointer; text-align:center; display:block;">Restore from a backup file instead<input type="file" accept="application/json,.json" id="fBringFile" style="display:none"></label>' +
+        '<button class="btn btn-text" id="btnBringCancel">'+(state.me ? 'Cancel' : 'Make a new badge instead')+'</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ---------------- iPhone: make the Home Screen icon carry the badge ----------------
+     An iPhone Home Screen app does not share Safari's saved data, so a plain icon
+     would open to an empty app. While a badge exists in the browser, point the
+     manifest's start URL at a restore link for it. The icon then opens with the
+     badge and saves it on first launch. Newer-wins (see processRestorePayload) means
+     that start URL can never overwrite later edits made inside the Home Screen app. */
+  var _manifestFor = null;
+  function syncIosInstallManifest(){
+    try{
+      if(!isIos() || isStandaloneDisplay()) return;
+      var link = document.querySelector('link[rel="manifest"]');
+      if(!link) return;
+      if(!state.me){
+        if(_manifestFor !== null){ link.setAttribute("href", "manifest.json"); _manifestFor = null; }
+        return;
+      }
+      var payload = encodeProfile(state.me, false, true);
+      if(payload === _manifestFor) return;
+      _manifestFor = payload;
+      var dir = location.origin + location.pathname.replace(/[^\/]*$/, "");
+      var m = {
+        name:"NicePeople", short_name:"NicePeople",
+        start_url: location.origin + location.pathname + "?restore=" + payload,
+        scope: dir, display:"standalone", background_color:"#f2f0eb", theme_color:"#f2f0eb", orientation:"portrait",
+        icons:[
+          { src:dir+"icon-192.png", sizes:"192x192", type:"image/png" },
+          { src:dir+"icon-512.png", sizes:"512x512", type:"image/png" }
+        ]
+      };
+      link.setAttribute("href", "data:application/manifest+json;charset=utf-8," + encodeURIComponent(JSON.stringify(m)));
+    }catch(e){}
+  }
+  // While the iPhone steps are on screen, the address bar also carries the restore
+  // link: it covers "Open in Safari" from an in-app browser, and any iOS version
+  // that builds the Home Screen icon from the page address instead of the manifest.
+  function syncGuideUrl(){
+    try{
+      if(state.saveGuide && state.me && !isStandaloneDisplay() && (isIos() || state.keepRestoreUrl)){
+        history.replaceState(null, "", backupUrl(state.me));
+      }
+    }catch(e){}
+  }
+  function closeSaveGuide(){
+    state.saveGuide = null; state.keepRestoreUrl = false;
+    stripUrl();
+    render();
+  }
+  function paintMoveQrs(){
+    var els = document.querySelectorAll("[data-moveqr]");
+    if(!els.length || !state.me) return;
+    var url = backupUrl(state.me);
+    Array.prototype.forEach.call(els, function(el){
+      try{
+        if(typeof QRCode === "undefined") throw new Error("no qr");
+        el.innerHTML = "";
+        new QRCode(el, { text:url, width:496, height:496, colorDark:"#14171b", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.L });
+        el.removeAttribute("title");
+      }catch(e){
+        el.innerHTML = '<span style="font-size:12.5px; color:#555">Couldn’t draw the code. Use “Get my backup link” in Settings instead.</span>';
+      }
+    });
+  }
+
   /* ---------------- add-to-home-screen nudge ---------------- */
   var LS_A2HS_DISMISSED = "nicepeople_a2hs_dismissed_v1";
   function isStandaloneDisplay(){
     return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   }
   function shouldShowA2hsBanner(){
-    if(isStandaloneDisplay()) return false;
+    if(isStandaloneDisplay() || state.saveGuide) return false;
     try{ if(localStorage.getItem(LS_A2HS_DISMISSED)) return false; }catch(e){}
     return true;
   }
   function renderA2hsBanner(){
-    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-    var tip = ios ?
-      'Add NicePeople to your Home Screen (Share icon → “Add to Home Screen”) so your badge is one tap away — even if your browser clears its cache.' :
-      'Add NicePeople to your Home Screen (browser menu → “Add to Home screen”) so your badge is one tap away — even if your browser clears its cache.';
+    var tip = isPhoneLike() ?
+      'Save NicePeople to your Home Screen so your badge is one tap away before every event.' :
+      'Using this at events? Put your badge on your phone.';
     return '<div class="due-banner" id="a2hsBanner" style="align-items:flex-start">' +
       ICONS.pin +
-      '<span style="flex:1">'+tip+'</span>' +
+      '<span style="flex:1">'+tip+' <button type="button" class="btn btn-text btn-sm" id="btnBannerGuide" style="padding:0; font-size:13.5px">Show me how</button></span>' +
       '<button type="button" class="icon-btn" id="btnA2hsDismiss" aria-label="Dismiss" style="flex-shrink:0">'+ICONS.close+'</button>' +
     '</div>';
   }
@@ -1736,7 +2088,8 @@
   function handleScannedText(text){
     state.scanning = false;
     stopScanIfRunning();
-    var cParam = null, restoreParam = null;
+    var cParam = null, restoreParam = extractRestorePayload(text);
+    if(restoreParam){ processRestorePayload(restoreParam); return; }
     try{
       var u = new URL(text);
       cParam = u.searchParams.get("c");
@@ -1790,26 +2143,49 @@
   }
 
   /* ---------------- restore-from-backup flow ---------------- */
-  function processRestorePayload(restoreParam){
+  function processRestorePayload(restoreParam, opts){
+    opts = opts || {};
     var restored = decodeProfile(restoreParam);
-    if(!restored){ flashScanStatus("That backup link looks damaged."); return; }
-
-    if(!state.me){
-      state.me = restored;
-      saveMe(restored);
-      state.tab = "badge";
-      render();
-      return;
+    if(!restored){
+      // From a tapped link (or the paste sheet) a bad link gets its own recovery
+      // screen. Elsewhere (Scan tab, file restore) keep the inline message.
+      if(opts.viaLink || !state.me){ state.bringOpen = "cutoff"; render(); return false; }
+      flashScanStatus("That backup link looks damaged.");
+      return false;
     }
+    if(!state.me){ applyRestore(restored, "new"); return true; }
     if(state.me.id === restored.id){
-      state.me = restored;
-      saveMe(restored);
-      state.tab = "badge";
-      render();
-      return;
+      var mine = state.me.updatedAt || 0, theirs = restored.updatedAt || 0;
+      if(theirs > mine || (!mine && !theirs)){
+        applyRestore(restored, "updated");
+      } else {
+        // Same badge, and this device's copy is as new or newer: leave it alone.
+        // (This is also every launch of the iPhone Home Screen icon, whose start
+        // URL carries a restore link; stay quiet there.)
+        state.tab = "badge";
+        if(!isStandaloneDisplay() && !opts.quiet) state.saveGuide = "already";
+        render();
+      }
+      return true;
     }
     // a different badge already lives on this device — confirm before overwriting it
     state.restorePending = restored;
+    render();
+    return true;
+  }
+  function applyRestore(restored, how){
+    // A backup link never carries the photo. Keep the one already on this device.
+    if(state.me && state.me.id === restored.id && !restored.photo && state.me.photo) restored.photo = state.me.photo;
+    if(!restored.updatedAt) restored.updatedAt = 1;
+    state.me = restored;
+    saveMe(restored);
+    state.restorePending = null;
+    state.bringOpen = null;
+    state.editing = false;
+    formTags = { profTags:(restored.profTags||[]).slice(), persTags:(restored.persTags||[]).slice() };
+    maybeSeed();
+    state.tab = "badge";
+    state.saveGuide = how;
     render();
   }
 
@@ -1822,7 +2198,71 @@
     var btnSettings = document.getElementById("btnSettings");
     if(btnSettings) btnSettings.onclick = function(){ state.settingsOpen = true; render(); };
 
-    function closeSheet(){ state.settingsOpen=false; state.resetArmed=false; state.backupOpen=false; state.a2hsHelpOpen=false; render(); }
+    function closeSheet(){ state.settingsOpen=false; state.resetArmed=false; state.backupOpen=false; state.moveOpen=false; render(); }
+    paintMoveQrs();
+    syncGuideUrl();
+    document.querySelectorAll("[data-help]").forEach(function(b){
+      b.onclick = function(e){ if(e && e.preventDefault) e.preventDefault(); state.helpOpen = true; render(); var hp = document.getElementById("helpPage"); if(hp) hp.scrollTop = 0; };
+    });
+    var btnCloseHelp = document.getElementById("btnCloseHelp");
+    if(btnCloseHelp) btnCloseHelp.onclick = closeHelp;
+    function readBackupFile(input, showError, before){
+      var file = input.files && input.files[0];
+      input.value = "";
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onerror = function(){ showError("Couldn’t read that file."); };
+      reader.onload = function(){
+        var parsed;
+        try{ parsed = JSON.parse(reader.result); }catch(e){ parsed = null; }
+        if(!parsed || !parsed.data || !decodeProfile(parsed.data)){ showError("That doesn’t look like a NicePeople backup file."); return; }
+        if(before) before();
+        processRestorePayload(parsed.data);
+      };
+      reader.readAsText(file);
+    }
+    var btnShowMove = document.getElementById("btnShowMove");
+    if(btnShowMove) btnShowMove.onclick = function(){ state.moveOpen = true; render(); };
+    var btnBannerGuide = document.getElementById("btnBannerGuide");
+    if(btnBannerGuide) btnBannerGuide.onclick = function(){ state.saveGuide = "install"; render(); };
+    var btnBadgeSavedInstall = document.getElementById("btnBadgeSavedInstall");
+    if(btnBadgeSavedInstall) btnBadgeSavedInstall.onclick = function(){ state.justCreated = false; state.saveGuide = "install"; render(); };
+    var btnCloseSaveGuide = document.getElementById("btnCloseSaveGuide");
+    if(btnCloseSaveGuide) btnCloseSaveGuide.onclick = closeSaveGuide;
+    var btnInstallNow = document.getElementById("btnInstallNow");
+    if(btnInstallNow) btnInstallNow.onclick = function(){
+      var p = deferredInstall;
+      if(!p){ render(); return; }
+      deferredInstall = null;
+      try{ p.prompt(); if(p.userChoice && p.userChoice.then) p.userChoice.then(function(){ closeSaveGuide(); }, function(){ render(); }); }
+      catch(e){ render(); }
+    };
+    var btnBringBadge = document.getElementById("btnBringBadge");
+    if(btnBringBadge) btnBringBadge.onclick = function(){ state.bringOpen = "manual"; render(); };
+    var btnBringCancel = document.getElementById("btnBringCancel");
+    if(btnBringCancel) btnBringCancel.onclick = function(){ state.bringOpen = null; stripUrl(); render(); };
+    var bringBackdrop = document.getElementById("bringBackdrop");
+    if(bringBackdrop) bringBackdrop.onclick = function(e){ if(e.target === bringBackdrop){ state.bringOpen = null; stripUrl(); render(); } };
+    function bringError(msg){ var st = document.getElementById("bringStatus"); if(st){ st.textContent = msg; st.style.display = "block"; } }
+    var btnBringRestore = document.getElementById("btnBringRestore");
+    if(btnBringRestore) btnBringRestore.onclick = function(){
+      var raw = document.getElementById("bringText").value;
+      if(!raw.trim()){ bringError("Paste your backup link first."); return; }
+      var payload = extractRestorePayload(raw) || raw.replace(/[^A-Za-z0-9_-]/g, "");
+      if(!decodeProfile(payload)){
+        bringError(/[?&]c=/.test(raw) && !/restore=/.test(raw) ?
+          "That’s a link for connecting with someone, not a backup link. Get yours from Settings on the device that has your badge." :
+          "Some of the link is still missing. Copy it again from start to finish, or scan the code instead.");
+        return;
+      }
+      stripUrl();
+      state.bringOpen = null;
+      processRestorePayload(payload);
+    };
+    var fBringFile = document.getElementById("fBringFile");
+    if(fBringFile) fBringFile.onchange = function(){
+      readBackupFile(fBringFile, bringError, function(){ state.bringOpen = null; stripUrl(); });
+    };
     var sheetBackdrop = document.getElementById("sheetBackdrop");
     if(sheetBackdrop) sheetBackdrop.onclick = function(e){ if(e.target===sheetBackdrop){ closeSheet(); } };
     var btnCloseSheet = document.getElementById("btnCloseSheet");
@@ -1835,6 +2275,8 @@
     if(btnResetConfirm) btnResetConfirm.onclick = function(){
       try{ localStorage.removeItem(LS_ME); localStorage.removeItem(LS_CONN); localStorage.removeItem(LS_SEEDED); }catch(e){}
       state.me=null; state.connections=[]; state.settingsOpen=false; state.resetArmed=false; state.tab="badge";
+      state.saveGuide=null; state.moveOpen=false;
+      scheduleMirror();
       render();
     };
     var btnShowBackup = document.getElementById("btnShowBackup");
@@ -1853,36 +2295,21 @@
     };
     var fRestoreFile = document.getElementById("fRestoreFile");
     if(fRestoreFile) fRestoreFile.onchange = function(){
-      var file = fRestoreFile.files && fRestoreFile.files[0];
-      fRestoreFile.value = "";
-      if(!file) return;
-      var statusEl = document.getElementById("restoreFileStatus");
-      function showError(msg){ if(statusEl){ statusEl.textContent = msg; statusEl.style.display = "block"; } }
-      var reader = new FileReader();
-      reader.onerror = function(){ showError("Couldn’t read that file."); };
-      reader.onload = function(){
-        var parsed;
-        try{ parsed = JSON.parse(reader.result); }catch(e){ parsed = null; }
-        if(!parsed || !parsed.data){ showError("That doesn’t look like a NicePeople backup file."); return; }
-        closeSheet();
-        processRestorePayload(parsed.data);
-      };
-      reader.readAsText(file);
+      readBackupFile(fRestoreFile, function(msg){
+        var statusEl = document.getElementById("restoreFileStatus");
+        if(statusEl){ statusEl.textContent = msg; statusEl.style.display = "block"; }
+      }, function(){ state.settingsOpen=false; state.resetArmed=false; state.backupOpen=false; state.moveOpen=false; });
     };
     var btnShowA2hsHelp = document.getElementById("btnShowA2hsHelp");
-    if(btnShowA2hsHelp) btnShowA2hsHelp.onclick = function(){ state.a2hsHelpOpen = true; render(); };
+    if(btnShowA2hsHelp) btnShowA2hsHelp.onclick = function(){ state.settingsOpen = false; state.backupOpen = false; state.moveOpen = false; state.saveGuide = "install"; render(); };
     var btnA2hsDismiss = document.getElementById("btnA2hsDismiss");
     if(btnA2hsDismiss) btnA2hsDismiss.onclick = function(){ try{ localStorage.setItem(LS_A2HS_DISMISSED,"1"); }catch(e){} render(); };
     var btnRestoreConfirm = document.getElementById("btnRestoreConfirm");
     if(btnRestoreConfirm) btnRestoreConfirm.onclick = function(){
-      state.me = state.restorePending;
-      saveMe(state.me);
-      state.restorePending = null;
-      formTags = { profTags:(state.me.profTags||[]).slice(), persTags:(state.me.persTags||[]).slice() };
-      render();
+      applyRestore(state.restorePending, "new");
     };
     var btnRestoreCancel = document.getElementById("btnRestoreCancel");
-    if(btnRestoreCancel) btnRestoreCancel.onclick = function(){ state.restorePending = null; render(); };
+    if(btnRestoreCancel) btnRestoreCancel.onclick = function(){ state.restorePending = null; stripUrl(); render(); };
 
     document.querySelectorAll(".tab").forEach(function(t){
       t.onclick = function(){ state.tab = t.getAttribute("data-tab"); render(); };
@@ -2124,6 +2551,7 @@
 
     var isNewProfile = !(state.editing && state.me);
     var profile = state.editing && state.me ? Object.assign({}, state.me) : { id: uid("u") };
+    profile.updatedAt = Date.now();
     profile.name = name;
     profile.headline = document.getElementById("fHeadline").value.trim();
     profile.goal = goal;
@@ -2165,15 +2593,25 @@
       navigator.storage.persist().catch(function(){});
     }
 
+    if(location.hash === "#help") state.helpOpen = true;
     var params = new URLSearchParams(location.search);
     var cParam = params.get("c");
     var restoreParam = params.get("restore");
+    if(restoreParam !== null) restoreParam = restoreParam.replace(/[^A-Za-z0-9_-]/g, "");
     var viaReminder = params.get("r") === "1";
-    if(cParam || restoreParam){
-      history.replaceState(null, "", location.origin + location.pathname);
+    if(restoreParam !== null){
+      // Keep the restore link in the address bar while its confirmation is on
+      // screen, so "Open in Safari/Chrome" from an email app's built-in browser
+      // carries the badge across. It is removed when that screen closes.
+      state.keepRestoreUrl = true;
+      processRestorePayload(restoreParam, { viaLink:true });
+      if(!state.saveGuide && !state.restorePending && !state.bringOpen){ state.keepRestoreUrl = false; stripUrl(); }
+      else if(isStandaloneDisplay() && !state.bringOpen){ state.keepRestoreUrl = false; stripUrl(); }
+    } else if(cParam){
+      stripUrl();
     }
-    if(restoreParam){
-      processRestorePayload(restoreParam);
+    if(restoreParam !== null){
+      // handled above
     } else if(cParam){
       var decoded = decodeProfile(cParam);
       if(decoded && (!state.me || decoded.id !== state.me.id)){
@@ -2191,7 +2629,50 @@
     // seed form tag state when opening edit on an existing profile
     if(state.me){ formTags = { profTags:(state.me.profTags||[]).slice(), persTags:(state.me.persTags||[]).slice() }; }
     render();
+
+    // Nothing saved here yet: check the shared mirror (an iPhone Home Screen app
+    // opening for the first time can find the badge Safari left there).
+    if(!state.me && !state.bringOpen){
+      readSharedCache().then(function(saved){
+        if(!saved || !saved.me || !saved.me.id || !saved.me.name || state.me) return;
+        state.me = saved.me;
+        saveMe(state.me);
+        if(!state.connections.length && saved.connections && saved.connections.length){
+          state.connections = saved.connections;
+          saveConns(state.connections);
+          try{ localStorage.setItem(LS_SEEDED, "1"); }catch(e){}
+        }
+        maybeSeed();
+        formTags = { profTags:(state.me.profTags||[]).slice(), persTags:(state.me.persTags||[]).slice() };
+        if(state.pending){
+          var pending = state.pending;
+          state.pending = null; state.quickCaptureExpanded = false;
+          processConnectPayload(encodeProfile(pending));
+        }
+        render();
+      });
+    } else if(state.me){
+      scheduleMirror();
+    }
   }
+
+  window.addEventListener("hashchange", function(){
+    if(location.hash === "#help" && !state.helpOpen){ state.helpOpen = true; render(); }
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && state.helpOpen) closeHelp();
+  });
+
+  // Android/desktop Chrome: hold the install prompt so the guide can offer a real button.
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault();
+    deferredInstall = e;
+    if(state.saveGuide) render();
+  });
+  window.addEventListener("appinstalled", function(){
+    deferredInstall = null;
+    if(state.saveGuide){ closeSaveGuide(); }
+  });
 
   // when entering edit mode later, refresh form tag state
   var _origRender = render;

@@ -1,7 +1,9 @@
 /* NicePeople service worker — app-shell caching for install + offline resilience.
    No push, no background sync: this alpha stays zero-backend. */
 
-var CACHE_NAME = "nicepeople-v1";
+var CACHE_NAME = "nicepeople-v2";
+// Holds the badge so an iPhone Home Screen app can pick it up from Safari. Never purge it.
+var HANDOFF_CACHE = "nicepeople-handoff-v1";
 var APP_SHELL = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", function (event) {
@@ -23,7 +25,7 @@ self.addEventListener("activate", function (event) {
         return Promise.all(
           keys
             .filter(function (k) {
-              return k !== CACHE_NAME;
+              return k !== CACHE_NAME && k !== HANDOFF_CACHE;
             })
             .map(function (k) {
               return caches.delete(k);
