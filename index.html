@@ -468,7 +468,9 @@
   .footnote{color:var(--text-faint); font-size:11.5px; text-align:center; line-height:1.5; margin-top:6px;}
   @keyframes statusPulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
   .status-pulse{ animation:statusPulse 1s ease-in-out infinite; }
-  .app-footer{color:var(--text-muted); font-size:11.5px; text-align:center; line-height:1.55; margin-top:22px; padding-top:2px; display:flex; flex-direction:column; gap:8px;}
+  .app-footer{color:var(--text-muted); font-size:11.5px; text-align:center; line-height:1.5; margin-top:0; padding-top:0; display:flex; flex-direction:column; gap:6px;}
+  .backup-note{color:var(--text-muted); font-size:12.5px; text-align:center; line-height:1.5; margin:-6px 0 0;}
+  .backup-note b{color:var(--text);}
   .app-footer p{margin:0; text-wrap:pretty;}
   .intro-hero p.hero-tag{color:var(--text); font-family:'Fengardo Neue Black',system-ui,sans-serif; font-weight:900; font-size:18px; line-height:1.25; margin-top:12px;}
   .app-footer a{color:var(--text-muted); text-decoration:underline; text-underline-offset:2px;}
@@ -902,7 +904,7 @@
         '<a href="https://davedelaney.me/blog/networking-sucks-do-this-instead" target="_blank" rel="noopener">Here’s the full story</a>.</p>' +
       '<p>NicePeople is an alpha, so some of this will change.</p>' +
       '<p>© 2026 Networking For Nice People made with love by ' +
-        '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville. 🇨🇦+🇮🇪=🇺🇸 · ' +
+        '<a href="https://davedelaney.me/" target="_blank" rel="noopener">Dave Delaney</a> in Nashville.<br><span style="white-space:nowrap">🇨🇦+🇮🇪=🇺🇸</span> · ' +
         '<a href="https://networkingfornicepeople.com/privacy.html" target="_blank" rel="noopener">Privacy</a> · ' +
         '<a href="https://networkingfornicepeople.com/#help" data-help="1">Help &amp; FAQ</a></p>' +
     '</footer>';
@@ -1122,7 +1124,7 @@
 
         '<button type="submit" class="btn btn-primary btn-block" style="margin-top:6px">'+(isEdit?"Save badge":(returning?"Complete my badge":"Create my badge"))+'</button>' +
       '</form>' +
-      '<p class="footnote">Your badge lives only in this browser — nothing is uploaded to a server, but that also means there’s no account to fall back on. <b>Grab your backup link from Settings</b> once you’ve made it, so a lost or new phone doesn’t mean a lost network.</p>' +
+      '<p class="backup-note">Your badge lives only in this browser — nothing is uploaded to a server, but that also means there’s no account to fall back on. <b>Grab your backup link from Settings</b> once you’ve made it, so a lost or new phone doesn’t mean a lost network.</p>' +
       renderFooter() +
     '</div>';
 
